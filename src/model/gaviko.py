@@ -3,9 +3,11 @@ from torch import nn
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import copy
-from ..utils.utils import pair
+from torch.nn import functional as F
 import math
 
+def pair(t):
+    return t if isinstance(t, tuple) else (t, t)
 
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout = 0.):
@@ -138,8 +140,9 @@ class BaseFusionAttention(nn.Module):
 
 
 class GlobalAttention(BaseFusionAttention):
-    def __init__(self, latent_dim):
+    def __init__(self, latent_dim, num_prompts):
         super().__init__(latent_dim)
+        self.num_prompts = num_prompts
         self.query_proj = nn.Linear(latent_dim, latent_dim)
         
     def get_query(self, prompts_latent):
@@ -157,7 +160,7 @@ class LocalAttention(BaseFusionAttention):
     def get_query(self, prompts_latent):
         return self.query_proj(prompts_latent)
         
-    def get_tokens(self, x_latent, local_latent):
+    def get_tokens(self, local_latent):
         return local_latent
 
 class Awakening_Prompt(nn.Module):
@@ -180,7 +183,7 @@ class Awakening_Prompt(nn.Module):
         self.gl_balancer = PromptContextFusion(self.latent_dim)
 
         # Separate queries for global and local path
-        self.global_attention = GlobalAttention(self.latent_dim)
+        self.global_attention = GlobalAttention(self.latent_dim,self.num_prompts)
         self.local_attention = LocalAttention(self.latent_dim)
 
         self.global_query = self.global_attention.query_proj
@@ -210,10 +213,9 @@ class Awakening_Prompt(nn.Module):
 
 
         # GLOBAL PATH: Cross-attention between prompts and global image tokens
-        global_context = self.global_attention(x_latent, prompts_latent)
-
+        global_context = self.global_attention.forward(global_img_latent, prompts_latent)  # [B, num_prompts, latent_dim]
         # LOCAL PATH: Cross-attention between prompts and local context
-        local_context = self.local_attention(x_latent, prompts_latent, local_latent)
+        local_context = self.local_attention.forward(local_latent, prompts_latent)  # [B, num_prompts, latent_dim]
 
         # # GLOBAL PATH: Cross-attention between prompts and global image tokens
         # global_q = self.global_query(prompts_latent)  # [B, num_prompts, latent_dim]
@@ -570,7 +572,7 @@ class VisionTransformer(nn.Module):
                 module.eval()
 
     def load_pretrain(self, pretrain_path):
-        jax_dict = torch.load(pretrain_path, map_location='cpu')
+        jax_dict = torch.load(pretrain_path, map_location='cuda' if torch.cuda.is_available() else 'cpu')
         new_dict = {}
 
         def interpolate_pos_embedding(pre_pos_embed):

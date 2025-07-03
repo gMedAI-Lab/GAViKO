@@ -5,6 +5,7 @@
   'data':{
     'num_workers': 8,
     'data_dir': '/workspace/data/unified_xray_mri_label.csv',
+    'test_data': '/workspace/data/unified_xray_mri_label.csv'
   },
   'model':{
       'image_size':160,
@@ -23,7 +24,7 @@
       'num_classes':5,
       'freeze_vit':True,
       'pool':'cls',
-      'pretrain_path':'/workspace/train_deep_prompt/pretrained/jx_vit_base_p16_224_in21k-e5005f0a.pth',
+      'pretrain_path':'/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth',
       'num_prompts':32,
       'prompt_latent_dim':20,
       'local_dim':20,
