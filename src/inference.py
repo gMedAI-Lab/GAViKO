@@ -62,7 +62,7 @@ def inference(config):
     all_outputs = np.concatenate(all_outputs, axis=0)
     logging.info(f"Shape of all_outputs: {all_outputs.shape}")
     output_df = pd.DataFrame(all_outputs, columns=[f'output_{i}' for i in range(all_outputs.shape[1])])
-    output_csv_path = os.path.join(config['utils']['log_dir'], 'inference_outputs.csv')
+    output_csv_path = os.path.join(config['utils']['results_dir'], 'inference_outputs.csv')
     output_df.to_csv(output_csv_path, index=False)
     logging.info(f"Inference outputs saved to {output_csv_path}")
 def generate_csv(image_folder):
@@ -91,12 +91,15 @@ if __name__ == "__main__":
                         help='Path to the configuration file')
     parser.add_argument('--image_folder', type=str, required=True,
                         help='Path to the folder containing MRI images')
-    
+    parser.add_argument('--results_dir', type=str, default='./',
+                        help='Directory to save inference results')
     
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
     config['data']['image_folder'] = args.image_folder
+    config['utils']['results_dir'] = args.results_dir
+    os.makedirs(config['utils']['results_dir'], exist_ok=True)
     logging.info(f"Config: {config}")
     inference(config)
 
