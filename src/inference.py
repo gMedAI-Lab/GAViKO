@@ -51,20 +51,45 @@ def inference(config):
         share_factor=config['model']['share_factor']
     )
     model.to(device)
-
+    #load trained weights
+    model_path = config['utils']['model_path']
+    if os.path.exists(model_path):
+        logging.info(f"Loading model weights from {model_path}")
+        model.load_state_dict(torch.load(model_path, map_location=device))
+    else:
+        logging.error(f"Model weights not found at {model_path}. Please check the path.")
+        return
     model.eval()
     all_outputs = []
+
     with torch.no_grad():
-        for inputs in tqdm(test_loader):
-            inputs = inputs.to(device)
-            outputs = model(inputs)
-            all_outputs.append(outputs.cpu().numpy())   
-    all_outputs = np.concatenate(all_outputs, axis=0)
-    logging.info(f"Shape of all_outputs: {all_outputs.shape}")
-    output_df = pd.DataFrame(all_outputs, columns=[f'output_{i}' for i in range(all_outputs.shape[1])])
-    output_csv_path = os.path.join(config['utils']['results_dir'], 'inference_outputs.csv')
+        for inputs in tqdm(test_loader, desc="Running Inference"):
+            inputs = inputs.to(device)  
+
+            outputs = model(inputs)  
+
+            predicted_classes = torch.argmax(outputs, dim=1).cpu().numpy() 
+
+            all_outputs.append(predicted_classes)
+
+    all_outputs = np.concatenate(all_outputs, axis=0)  
+    print(f"Final outputs shape: {all_outputs.shape}")
+
+    test_df['outputs'] = all_outputs.tolist()
+
+    test_df['mri_path'] = test_df['mri_path'].apply(lambda x: os.path.basename(x))
+
+    output_df = test_df[['mri_path', 'outputs']]
+
+    output_df['outputs'] = output_df['outputs'].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+
+    results_dir = config['utils']['results_dir']
+    os.makedirs(results_dir, exist_ok=True)
+    logging.info(f"Saving inference outputs to {results_dir}")
+
+    output_csv_path = os.path.join(results_dir, 'inference_results.csv')
     output_df.to_csv(output_csv_path, index=False)
-    logging.info(f"Inference outputs saved to {output_csv_path}")
+    print(f"Results saved to {output_csv_path}")
 def generate_csv(image_folder):
     """
     Generates a CSV file with image paths and labels.
@@ -93,12 +118,14 @@ if __name__ == "__main__":
                         help='Path to the folder containing MRI images')
     parser.add_argument('--results_dir', type=str, default='./',
                         help='Directory to save inference results')
-    
+    parser.add_argument('--model_path', type=str, required=True,
+                        help='Path to the trained model weights')
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
     config['data']['image_folder'] = args.image_folder
     config['utils']['results_dir'] = args.results_dir
+    config['utils']['model_path'] = args.model_path
     os.makedirs(config['utils']['results_dir'], exist_ok=True)
     logging.info(f"Config: {config}")
     inference(config)

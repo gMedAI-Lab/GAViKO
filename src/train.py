@@ -8,13 +8,21 @@ import logging
 import os
 from tqdm import tqdm
 import numpy as np
-from focal_loss.focal_loss import FocalLoss
+from focal_loss import FocalLoss
 from torch.optim.lr_scheduler import OneCycleLR
 
+# import paht to sys
+
+from utils.logging import CSVLogger
 
 
 def train(config):
+    
     os.makedirs(config['utils']['log_dir'], exist_ok=True)
+    csv_logger = CSVLogger(log_dir=config['utils']['log_dir'], filename_prefix='vit_train', 
+                       fields=['epoch', 'train_step_acc', 'train_step_loss', 'train_epoch_loss', 
+                               'val_step_acc', 'val_step_loss', 'val_epoch_loss', 'lr', 
+                               'best_epoch', 'best_val_acc', 'time_stamp', 'train_step', 'val_step'])
     time_stamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
     logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -46,15 +54,15 @@ def train(config):
     ])
 
 
-    df = pd.read_csv('/workspace/data/unified_xray_mri_label.csv')
+    df = pd.read_csv(config['data']['data_path'])
 
     train_df = df[df['subset'] == 'train'].reset_index(drop=True)
     val_df = df[df['subset'] == 'val'].reset_index(drop=True)
     test_df = df[df['subset'] == 'test'].reset_index(drop=True)
 
-    train_ds = CustomDataset(train_df, transforms=train_transforms)
-    val_ds = CustomDataset(val_df, transforms=val_transforms)
-    test_ds = CustomDataset(test_df, transforms=test_transforms)
+    train_ds = CustomDataset(train_df, transforms=train_transforms, image_folder=config['data']['image_folder'])
+    val_ds = CustomDataset(val_df, transforms=val_transforms, image_folder=config['data']['image_folder'])
+    test_ds = CustomDataset(test_df, transforms=test_transforms, image_folder=config['data']['image_folder'])
 
     train_loader = DataLoader(train_ds, batch_size=config['model']['batch_size'], shuffle=True, num_workers=config['data']['num_workers'], pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size=config['model']['batch_size'], shuffle=False, num_workers=config['data']['num_workers'], pin_memory=True)
@@ -78,7 +86,7 @@ def train(config):
         num_classes=config['model']['num_classes'],
         freeze_vit = config['model']['freeze_vit'],
         pool = config['model']['pool'],
-        pretrain_path = '/workspace/train_deep_prompt/pretrained/jx_vit_base_p16_224_in21k-e5005f0a.pth',
+        pretrain_path = config['model']['pretrain_path'],
         num_prompts=config['model']['num_prompts'],
         prompt_latent_dim=config['model']['prompt_latent_dim'],
         local_dim=config['model']['local_dim'],
@@ -123,7 +131,7 @@ def train(config):
     scheduler = OneCycleLR(
         optimizer,
         max_lr=config['train']['scheduler']['max_lr'],  # learning rate cao nhất
-        total_steps=config['train']['scheduler']['total_steps'],  # tổng số bước huấn luyện
+        total_steps=total_steps,  # tổng số bước huấn luyện
         pct_start=config['train']['scheduler']['pct_start'],  # % số bước dành cho giai đoạn tăng lr (warmup)
         div_factor=config['train']['scheduler']['div_factor'],  # lr_start = max_lr / div_factor
         final_div_factor=config['train']['scheduler']['final_div_factor'],  # lr_final = lr_start / final_div_factor
@@ -143,12 +151,21 @@ def train(config):
 
     patience = config['train']['patience']
     epoch_since_improvement = 0
-
+    val_acc = 0.0
+    train_acc = 0.0
+    val_loss = 0.0
+    train_loss = 0.0
+    val_step_acc = 0.0
+    train_step_acc = 0.0
+    val_step_loss = 0.0
+    train_step_loss = 0.0
+    train_step = 0
+    val_step = 0
     for epoch in range(num_epochs):
         num_acc = 0.0
         running_loss = 0.0
         model.train()
-
+        index = 0
         for inputs, labels in tqdm(train_loader):
             optimizer.zero_grad()
 
@@ -166,7 +183,28 @@ def train(config):
 
             running_loss += loss.item() * inputs.size(0)
             num_acc += (torch.argmax(outputs, dim = 1) == labels).sum().item()
-
+            train_step_acc = num_acc / (len(train_ds) * (epoch + 1))
+            train_step_loss = running_loss / (len(train_ds) * (epoch + 1))
+            #Train step accurately
+            train_step = (epoch * len(train_loader)) + index + 1
+            # log at the end of batch
+            # if index % config['model']['batch_size'] == 0:
+            csv_logger.log({
+                'epoch': current_epoch,
+                'train_step_acc': train_step_acc,
+                'train_step_loss': train_step_loss,
+                'train_epoch_loss': train_loss,
+                'val_step_acc': val_step_acc,
+                'val_step_loss': val_step_loss,
+                'val_epoch_loss': val_loss,
+                'lr': optimizer.param_groups[0]['lr'],
+                'best_epoch': current_epoch if val_acc > val_acc_max else 0,
+                'best_val_acc': val_acc_max,
+                'time_stamp': time_stamp,
+                'train_step': train_step,
+                'val_step': val_step
+            })
+            index += 1
         current_lr = optimizer.param_groups[0]['lr']
         logging.info(f"Epoch {epoch}, Current LR: {current_lr:.6f}")
 
@@ -185,8 +223,8 @@ def train(config):
 
         model.eval()
         with torch.no_grad():
+            index_val = 0
             for inputs, labels in tqdm(val_loader):
-
                 inputs  = inputs.to(device)
                 labels  = labels.to(device)
 
@@ -196,8 +234,27 @@ def train(config):
 
                 running_val_loss += loss.item() * inputs.size(0)
                 num_val_acc += (torch.argmax(outputs, dim = 1) == labels).sum().item()
-
-
+                val_step_acc = num_val_acc / (len(val_ds) * (epoch + 1))
+                val_step_loss = running_val_loss / (len(val_ds) * (epoch + 1))
+                val_step = (epoch * len(val_loader)) + index_val + 1
+                # if index_val % config['model']['batch_size'] == 0:
+                csv_logger.log({
+                    'epoch': current_epoch,
+                    'train_step_acc': train_step_acc,
+                    'train_step_loss': train_step_loss,
+                    'train_epoch_loss': train_loss,
+                    'val_step_acc': val_step_acc,
+                    'val_step_loss': val_step_loss,
+                    'val_epoch_loss': val_loss,
+                    'lr': optimizer.param_groups[0]['lr'],
+                    'best_epoch': current_epoch if val_acc > val_acc_max else 0,
+                    'best_val_acc': val_acc_max,
+                    'time_stamp': time_stamp,
+                    'train_step': train_step,
+                    'val_step': val_step
+                })
+                index_val += 1
+    
         val_loss = running_val_loss / len(val_loader)
         val_acc = num_val_acc / len(val_ds)
 
@@ -231,6 +288,7 @@ def train(config):
         logging.info(f"Val Loss: {val_loss:.4f}, Val Accuracy: {val_acc*100:.2f}%")
 
     logging.info("Training completed.")
+    #save log
 
 
 def main():

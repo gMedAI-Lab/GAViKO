@@ -1,13 +1,17 @@
 from torch.utils.data import Dataset
 import numpy as np
 import torch
+import os
 class CustomDataset(Dataset):
-    def __init__(self, dataframe, transforms=None):
+    def __init__(self, dataframe, transforms=None, image_folder=None):
         self.df = dataframe
         self.transforms = transforms
-
+        self.image_folder = image_folder
     def __getitem__(self, index):
-        path_object = self.df.loc[index]['mri_path']
+        if not self.image_folder:
+            path_object = self.df.loc[index]['mri_path']
+        else:
+            path_object = os.path.join(self.image_folder, self.df.loc[index]['mri_path'])
         mri_file = path_object
         mri_dict = np.load(mri_file)
         mri_object = mri_dict['data']
