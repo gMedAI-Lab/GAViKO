@@ -25,15 +25,13 @@ def train(config):
                                'val_step_acc', 'val_step_loss', 'val_epoch_loss', 'lr', 
                                'best_epoch', 'best_val_acc', 'time_stamp', 'train_step', 'val_step','train_epoch_acc', 'val_epoch_acc'])
     time_stamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
-    if config['wandb']['enable']:
-        logging.info("Initializing WandB...")
-        wandb.init(
-            project=config['wandb']['project'],
-            config=OmegaConf.to_container(config, resolve=True),
-            name=config['wandb'].get('name', f"run_{time_stamp}"),
-            dir=config['utils']['log_dir'],
-            save_code=True,
-        )
+    wandb.init(
+        project=config['wandb']['project'],
+        config=OmegaConf.to_container(config, resolve=True),
+        name=config['wandb'].get('name', f"run_{time_stamp}"),
+        dir=config['utils']['log_dir'],
+        save_code=True,
+    )
     logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
@@ -220,22 +218,22 @@ def train(config):
                 'val_step': val_step
             })
             index += 1
-            if config['wandb']['enable']:
-                wandb.log({
-                    'train_step_acc': train_step_acc,
-                    'train_step_loss': train_step_loss,
-                    'lr': optimizer.param_groups[0]['lr'],
-                    'epoch': current_epoch,
-                    'train_step': train_step,
-                }, step=train_step)
+
+            wandb.log({
+                'train_step_acc': train_step_acc,
+                'train_step_loss': train_step_loss,
+                'lr': optimizer.param_groups[0]['lr'],
+                'epoch': current_epoch,
+                'train_step': train_step,
+            }, step=train_step)
         current_lr = optimizer.param_groups[0]['lr']
         logging.info(f"Epoch {epoch}, Current LR: {current_lr:.6f}")
 
-        train_loss = running_loss / len(train_loader)
-        train_acc = num_acc / len(train_ds)
+        epoch_loss = running_loss / len(train_loader)
+        acc = num_acc / len(train_ds)
 
-        loss_epochs.append(train_loss)
-        acc_epochs.append(train_acc)
+        loss_epochs.append(epoch_loss)
+        acc_epochs.append(acc)
 
 
         # Evaluate model on epcoh
@@ -280,14 +278,13 @@ def train(config):
                     'val_step': val_step
                 })
                 index_val += 1
-                if config['wandb']['enable']:
 
-                    wandb.log({
-                        'val_step_acc': val_step_acc,
-                        'val_step_loss': val_step_loss,
-                        'epoch': current_epoch,
-                        'val_step': val_step,
-                    }, step=train_step)
+                wandb.log({
+                    'val_step_acc': val_step_acc,
+                    'val_step_loss': val_step_loss,
+                    'epoch': current_epoch,
+                    'val_step': val_step,
+                }, step=val_step)
         val_loss = running_val_loss / len(val_loader)
         val_acc = num_val_acc / len(val_ds)
 
@@ -298,14 +295,13 @@ def train(config):
         # scheduler.step()
 
         current_epoch += 1
-        if config['wandb']['enable']:
-            wandb.log({
-                'train_epoch_loss': train_loss,
-                'train_epoch_acc': train_acc,
-                'val_epoch_loss': val_loss,
-                'val_epoch_acc': val_acc,
-                'best_val_acc': val_acc_max,
-            }, step=train_step)
+        wandb.log({
+            'train_epoch_loss': epoch_loss,
+            'train_epoch_acc': acc,
+            'val_epoch_loss': val_loss,
+            'val_epoch_acc': val_acc,
+            'best_val_acc': val_acc_max,
+        }, step=train_step)
         if val_acc > val_acc_max:
             logging.info(f'Validation accuracy increased ({val_acc_max:.6f} --> {val_acc:.6f}).')
             val_acc_max = val_acc
@@ -325,7 +321,7 @@ def train(config):
                 logging.info("The training halted by early stopping criterion.")
                 break
         logging.info(f"Epoch {epoch + 1}")
-        logging.info(f"Loss: {train_loss:.4f}, Train Accuracy: {train_acc*100:.2f}%")
+        logging.info(f"Loss: {epoch_loss:.4f}, Train Accuracy: {acc*100:.2f}%")
         logging.info(f"Val Loss: {val_loss:.4f}, Val Accuracy: {val_acc*100:.2f}%")
 
     logging.info("Training completed.")

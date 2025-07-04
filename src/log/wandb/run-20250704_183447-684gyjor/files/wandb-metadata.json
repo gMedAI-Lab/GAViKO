@@ -1,0 +1,44 @@
+{
+  "os":  "Linux-6.11.0-29-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.13",
+  "startedAt":  "2025-07-04T11:34:47.257833Z",
+  "args":  [
+    "--config",
+    "/mnt/e/workspace/gsoft/GAViKO_origin/src/configs/original_gaviko.yaml"
+  ],
+  "program":  "/mnt/e/workspace/gsoft/GAViKO_origin/src/train.py",
+  "codePath":  "src/train.py",
+  "codePathLocal":  "src/train.py",
+  "git":  {
+    "remote":  "git@github.com:DanhNguyennene/GAViKO_origin.git",
+    "commit":  "f7a64a8051b21c6ff2c5f80e4c1862e731a31d43"
+  },
+  "email":  "danhvm12345@gmail.com",
+  "root":  "/mnt/e/workspace/gsoft/GAViKO_origin/src/log",
+  "host":  "danhHomeBase",
+  "executable":  "/opt/miniconda3/envs/main/bin/python",
+  "cpu_count":  14,
+  "cpu_count_logical":  20,
+  "gpu":  "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "205287342080",
+      "used":  "162521051136"
+    }
+  },
+  "memory":  {
+    "total":  "67197710336"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce RTX 5070 Ti",
+      "memoryTotal":  "17094934528",
+      "cudaCores":  8960,
+      "architecture":  "Blackwell",
+      "uuid":  "GPU-44da9fed-97b3-9064-8613-1bc9a83cf5af"
+    }
+  ],
+  "cudaVersion":  "12.8",
+  "writerId":  "8iviei92g7x8snkageedqpjl7fptqbv0"
+}

@@ -1,0 +1,62 @@
+{"time":"2025-07-04T18:30:15.888498735+07:00","level":"INFO","msg":"stream: starting","core version":"0.21.0"}
+{"time":"2025-07-04T18:30:16.321352601+07:00","level":"INFO","msg":"stream: created new stream","id":"7smgautg"}
+{"time":"2025-07-04T18:30:16.321433436+07:00","level":"INFO","msg":"stream: started","id":"7smgautg"}
+{"time":"2025-07-04T18:30:16.321473741+07:00","level":"INFO","msg":"sender: started","stream_id":"7smgautg"}
+{"time":"2025-07-04T18:30:16.321474298+07:00","level":"INFO","msg":"writer: Do: started","stream_id":"7smgautg"}
+{"time":"2025-07-04T18:30:16.321490412+07:00","level":"INFO","msg":"handler: started","stream_id":"7smgautg"}
+{"time":"2025-07-04T18:30:16.762712817+07:00","level":"ERROR","msg":"git repo not found","error":"repository does not exist"}
+{"time":"2025-07-04T18:30:30.131882575+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":1,"current":22}
+{"time":"2025-07-04T18:30:30.393185958+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":2,"current":22}
+{"time":"2025-07-04T18:30:30.656387533+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":3,"current":22}
+{"time":"2025-07-04T18:30:42.743700286+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":4,"current":44}
+{"time":"2025-07-04T18:30:43.005376449+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":5,"current":44}
+{"time":"2025-07-04T18:30:43.263431546+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":6,"current":44}
+{"time":"2025-07-04T18:30:55.440282433+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":7,"current":66}
+{"time":"2025-07-04T18:30:55.702703182+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":8,"current":66}
+{"time":"2025-07-04T18:30:55.976666021+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":9,"current":66}
+{"time":"2025-07-04T18:31:07.931386983+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":10,"current":88}
+{"time":"2025-07-04T18:31:08.20674949+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":11,"current":88}
+{"time":"2025-07-04T18:31:08.493306579+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":12,"current":88}
+{"time":"2025-07-04T18:31:20.498033676+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":13,"current":110}
+{"time":"2025-07-04T18:31:20.775947653+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":14,"current":110}
+{"time":"2025-07-04T18:31:21.058732591+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":15,"current":110}
+{"time":"2025-07-04T18:31:33.120792982+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":16,"current":132}
+{"time":"2025-07-04T18:31:33.387522197+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":17,"current":132}
+{"time":"2025-07-04T18:31:33.651334963+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":18,"current":132}
+{"time":"2025-07-04T18:31:45.723025194+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":19,"current":154}
+{"time":"2025-07-04T18:31:45.99862239+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":20,"current":154}
+{"time":"2025-07-04T18:31:46.273718192+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":21,"current":154}
+{"time":"2025-07-04T18:31:58.039853792+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":22,"current":176}
+{"time":"2025-07-04T18:31:58.314833566+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":23,"current":176}
+{"time":"2025-07-04T18:31:58.589651606+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":24,"current":176}
+{"time":"2025-07-04T18:32:10.616646808+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":25,"current":198}
+{"time":"2025-07-04T18:32:10.886008379+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":26,"current":198}
+{"time":"2025-07-04T18:32:11.149925186+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":27,"current":198}
+{"time":"2025-07-04T18:32:23.107106855+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":28,"current":220}
+{"time":"2025-07-04T18:32:23.382324778+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":29,"current":220}
+{"time":"2025-07-04T18:32:23.660217347+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":30,"current":220}
+{"time":"2025-07-04T18:32:35.509010621+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":31,"current":242}
+{"time":"2025-07-04T18:32:35.785828297+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":32,"current":242}
+{"time":"2025-07-04T18:32:36.060192861+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":33,"current":242}
+{"time":"2025-07-04T18:32:47.672832063+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":34,"current":264}
+{"time":"2025-07-04T18:32:47.948497801+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":35,"current":264}
+{"time":"2025-07-04T18:32:48.227337616+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":36,"current":264}
+{"time":"2025-07-04T18:33:00.190293845+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":37,"current":286}
+{"time":"2025-07-04T18:33:00.463536551+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":38,"current":286}
+{"time":"2025-07-04T18:33:00.73627345+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":39,"current":286}
+{"time":"2025-07-04T18:33:12.454817789+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":40,"current":308}
+{"time":"2025-07-04T18:33:12.731614901+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":41,"current":308}
+{"time":"2025-07-04T18:33:13.00662365+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":42,"current":308}
+{"time":"2025-07-04T18:33:25.028979796+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":43,"current":330}
+{"time":"2025-07-04T18:33:25.30993643+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":44,"current":330}
+{"time":"2025-07-04T18:33:25.592194082+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":45,"current":330}
+{"time":"2025-07-04T18:33:37.579654843+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":46,"current":352}
+{"time":"2025-07-04T18:33:37.85584583+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":47,"current":352}
+{"time":"2025-07-04T18:33:38.130948135+07:00","level":"WARN","msg":"handler: ignoring partial history record","step":48,"current":352}
+{"time":"2025-07-04T18:33:39.165445406+07:00","level":"INFO","msg":"handler: operation stats","stats":{"operations":[{"desc":"uploading output.log","runtime_seconds":0.696254228,"progress":"29.5KB/29.5KB"},{"desc":"uploading wandb-summary.json","runtime_seconds":0.696227991,"progress":"423B/423B"},{"desc":"uploading config.yaml","runtime_seconds":0.406638089,"progress":"3.7KB/3.7KB"}],"total_operations":3}}
+{"time":"2025-07-04T18:33:39.591409501+07:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-07-04T18:33:39.996060732+07:00","level":"INFO","msg":"stream: closing","id":"7smgautg"}
+{"time":"2025-07-04T18:33:39.996072534+07:00","level":"INFO","msg":"handler: closed","stream_id":"7smgautg"}
+{"time":"2025-07-04T18:33:39.996081945+07:00","level":"INFO","msg":"sender: closed","stream_id":"7smgautg"}
+{"time":"2025-07-04T18:33:39.9960785+07:00","level":"INFO","msg":"writer: Close: closed","stream_id":"7smgautg"}
+{"time":"2025-07-04T18:33:39.996113213+07:00","level":"INFO","msg":"stream: closed","id":"7smgautg"}

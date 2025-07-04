@@ -1,0 +1,28 @@
+2025-07-04 18:30:15,663 INFO    MainThread:122614 [wandb_setup.py:_flush():80] Current SDK version is 0.21.0
+2025-07-04 18:30:15,663 INFO    MainThread:122614 [wandb_setup.py:_flush():80] Configure stats pid to 122614
+2025-07-04 18:30:15,663 INFO    MainThread:122614 [wandb_setup.py:_flush():80] Loading settings from /home/danhvuive/.config/wandb/settings
+2025-07-04 18:30:15,663 INFO    MainThread:122614 [wandb_setup.py:_flush():80] Loading settings from /mnt/e/workspace/gsoft/GAViKO_origin/wandb/settings
+2025-07-04 18:30:15,663 INFO    MainThread:122614 [wandb_setup.py:_flush():80] Loading settings from environment variables
+2025-07-04 18:30:15,664 INFO    MainThread:122614 [wandb_init.py:setup_run_log_directory():703] Logging user logs to /mnt/e/workspace/gsoft/GAViKO_origin/src/log/wandb/run-20250704_183015-7smgautg/logs/debug.log
+2025-07-04 18:30:15,664 INFO    MainThread:122614 [wandb_init.py:setup_run_log_directory():704] Logging internal logs to /mnt/e/workspace/gsoft/GAViKO_origin/src/log/wandb/run-20250704_183015-7smgautg/logs/debug-internal.log
+2025-07-04 18:30:15,664 INFO    MainThread:122614 [wandb_init.py:init():830] calling init triggers
+2025-07-04 18:30:15,664 INFO    MainThread:122614 [wandb_init.py:init():835] wandb.init called with sweep_config: {}
+config: {'utils': {'log_dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log'}, 'data': {'num_workers': 8, 'data_path': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv', 'image_folder': '/mnt/e/workspace/gsoft/part1', 'test_data': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv'}, 'model': {'image_size': 160, 'image_patch_size': 16, 'frames': 120, 'frame_patch_size': 12, 'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072, 'dropout': 0.1, 'emb_dropout': 0.1, 'attn_drop': 0.2, 'proj_drop': 0.2, 'channels': 1, 'num_classes': 5, 'freeze_vit': True, 'pool': 'cls', 'pretrain_path': '/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth', 'num_prompts': 32, 'prompt_latent_dim': 20, 'local_dim': 20, 'local_k': [6, 6, 6], 'DHW': [10, 10, 10], 'share_factor': 2, 'batch_size': 8}, 'train': {'num_epochs': 30, 'lr': 0.0001, 'weight_decay': 0.0001, 'warmup_steps': 1000, 'loss_fn': 'focal_loss', 'accumulation_steps': 1, 'save_dir': '/mnt/e/workspace/gsoft/GAViKO_origin', 'save_threshold': 0.6, 'scheduler': {'max_lr': 0.0003, 'pct_start': 0.3, 'div_factor': 10.0, 'final_div_factor': 1000.0, 'anneal_strategy': 'cos', 'three_phase': False}, 'patience': 15}, 'wandb': {'project': 'GAViKO', 'name': 'GAViKO_training', 'log_model': True, 'save_code': True, 'dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log'}, '_wandb': {'code_path': 'code/src/train.py'}}
+2025-07-04 18:30:15,664 INFO    MainThread:122614 [wandb_init.py:init():871] starting backend
+2025-07-04 18:30:15,874 INFO    MainThread:122614 [wandb_init.py:init():874] sending inform_init request
+2025-07-04 18:30:15,881 INFO    MainThread:122614 [wandb_init.py:init():882] backend started and connected
+2025-07-04 18:30:15,886 INFO    MainThread:122614 [wandb_init.py:init():953] updated telemetry
+2025-07-04 18:30:15,898 INFO    MainThread:122614 [wandb_init.py:init():977] communicating run to backend with 90.0 second timeout
+2025-07-04 18:30:16,761 INFO    MainThread:122614 [wandb_init.py:init():1029] starting run threads in backend
+2025-07-04 18:30:16,825 INFO    MainThread:122614 [wandb_run.py:_console_start():2458] atexit reg
+2025-07-04 18:30:16,825 INFO    MainThread:122614 [wandb_run.py:_redirect():2306] redirect: wrap_raw
+2025-07-04 18:30:16,825 INFO    MainThread:122614 [wandb_run.py:_redirect():2375] Wrapping output streams.
+2025-07-04 18:30:16,825 INFO    MainThread:122614 [wandb_run.py:_redirect():2398] Redirects installed.
+2025-07-04 18:30:16,826 INFO    MainThread:122614 [wandb_init.py:init():1075] run started, returning control to user process
+2025-07-04 18:33:38,161 INFO    MainThread:122614 [wandb_run.py:_finish():2224] finishing run matcha_hehe/GAViKO/7smgautg
+2025-07-04 18:33:38,161 INFO    MainThread:122614 [wandb_run.py:_atexit_cleanup():2423] got exitcode: 0
+2025-07-04 18:33:38,161 INFO    MainThread:122614 [wandb_run.py:_restore():2405] restore
+2025-07-04 18:33:38,161 INFO    MainThread:122614 [wandb_run.py:_restore():2411] restore done
+2025-07-04 18:33:39,995 INFO    MainThread:122614 [wandb_run.py:_footer_history_summary_info():3903] rendering history
+2025-07-04 18:33:39,995 INFO    MainThread:122614 [wandb_run.py:_footer_history_summary_info():3935] rendering summary
+2025-07-04 18:33:39,995 INFO    MainThread:122614 [wandb_run.py:_footer_sync_info():3864] logging synced files

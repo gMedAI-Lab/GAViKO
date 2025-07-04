@@ -53,5 +53,13 @@
         'three_phase': False  # không dùng 3 giai đoạn (chỉ dùng 2: lên-xuống)
       },
       'patience': 15,  # số epoch không cải thiện để dừng huấn luyện sớm
-  }
+  },
+  'wandb':{
+    'enable': False,
+    'project': 'GAViKO',
+    'name': 'GAViKO_training',
+    'log_model': True,
+    'save_code': True,
+    'dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log'
+  },
 }
