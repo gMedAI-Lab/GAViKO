@@ -3,6 +3,7 @@
     'log_dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log',
   },
   'data':{
+    'batch_size': 8,
     'num_workers': 8,
     'data_path': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv',
     'image_folder': '/mnt/e/workspace/gsoft/part1',
@@ -32,7 +33,6 @@
       'local_k':[6,6,6],
       'DHW':[10,10,10],
       'share_factor':2, # he so K, K factor
-      'batch_size': 8
   },
   'train':{
       'num_epochs': 30,
@@ -41,8 +41,8 @@
       'warmup_steps': 1000,
       'loss_fn': 'focal_loss',
       'accumulation_steps': 1,
-      'save_dir': '/mnt/e/workspace/gsoft/GAViKO_origin',
-      'save_threshold': 0.60,  # lưu mô hình nếu accuracy > 0.60
+      'save_dir': '/mnt/e/workspace/gsoft/',
+      'save_threshold': 0.0,  # lưu mô hình nếu accuracy > 0.60, 0 for debugging
       'scheduler': {
         'max_lr': 3e-4,  # learning rate cao nhất
         # 'total_steps': total_steps,
@@ -56,10 +56,10 @@
   },
   'wandb':{
     'enable': False,
-    'project': 'GAViKO',
-    'name': 'GAViKO_training',
+    'project': 'gaviko',
+    'name': 'gaviko_training',
     'log_model': True,
     'save_code': True,
-    'dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log'
+    'dir': '/mnt/e/workspace/gsoft/log'
   },
 }

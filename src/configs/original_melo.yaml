@@ -9,14 +9,14 @@
     'image_folder': '/mnt/e/workspace/gsoft/part1',
     'test_data': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv'
   },
-  model:{
+  'model':{
       'image_size':160,
       'image_patch_size':16,
       'frames':120,
       'frame_patch_size':12,
-      'num_layers':12,
-      'num_heads':12,
-      'hidden_dim':768,
+      'depth':12,
+      'heads':12,
+      'dim':768,
       'mlp_dim':3072,
       'dropout':0.1,
       'emb_dropout':0.1,
@@ -25,10 +25,6 @@
       'freeze_vit':True,
       'pool':'cls',
       'pretrain_path':'/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth',
-      'num_prompts':8,
-      'prompt_dropout':0.1,
-      'prompt_dim':64,
-      'deep_prompt':True
   },
   'train':{
       'num_epochs': 30,
@@ -52,8 +48,8 @@
   },
   'wandb':{
     'enable': False,
-    'project': 'vpt',
-    'name': 'vpt_training',
+    'project': 'melo',
+    'name': 'melo_training',
     'log_model': True,
     'save_code': True,
     'dir': '/mnt/e/workspace/gsoft/log'

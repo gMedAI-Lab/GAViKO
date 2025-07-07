@@ -1,0 +1,58 @@
+{
+  'utils':{
+    'log_dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log',
+  },
+  'data':{
+    'batch_size': 8,
+    'num_workers': 8,
+    'data_path': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv',
+    'image_folder': '/mnt/e/workspace/gsoft/part1',
+    'test_data': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv'
+  },
+  'model':{
+      'image_size':160,
+      'image_patch_size':16,
+      'frames':120,
+      'frame_patch_size':12,
+      'depth':12,
+      'heads':12,
+      'dim':768,
+      'mlp_dim':3072,
+      'dropout':0.1,
+      'emb_dropout':0.1,
+      'channels':1,
+      'num_classes':5,
+      'freeze_vit':True,
+      'pool':'mean',
+      'pretrain_path':'/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth',
+      'num_prompts':50,
+  },
+  'train':{
+      'num_epochs': 30,
+      'lr': 1e-4,
+      'weight_decay': 1e-4,
+      'warmup_steps': 1000,
+      'loss_fn': 'focal_loss',
+      'accumulation_steps': 1,
+      'save_dir': '/mnt/e/workspace/gsoft/',
+      'save_threshold': 0.0,  # lưu mô hình nếu accuracy > 0.60, 0 for debugging
+      'scheduler': {
+        'max_lr': 3e-4,  # learning rate cao nhất
+        # 'total_steps': total_steps,
+        'pct_start': 0.3,  # % số bước dành cho giai đoạn tăng lr (warmup)
+        'div_factor': 10.0,  # lr_start = max_lr / div_factor
+        'final_div_factor': 1000.0,  # lr_final = lr_start / final_div_factor
+        'anneal_strategy': 'cos',  # sử dụng cosine annealing
+        'three_phase': False  # không dùng 3 giai đoạn (chỉ dùng 2: lên-xuống)
+      },
+      'patience': 15,  # số epoch không cải thiện để dừng huấn luyện sớm
+  },
+  'wandb':{
+    'enable': False,
+    'project': 'dvpt',
+    'name': 'dvpt_training',
+    'log_model': True,
+    'save_code': True,
+    'dir': '/mnt/e/workspace/gsoft/log'
+  },
+}
