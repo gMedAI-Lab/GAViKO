@@ -1,1 +1,0 @@
-epoch,train_step_acc,train_step_loss,train_epoch_loss,val_step_acc,val_step_loss,val_epoch_loss,lr,best_epoch,best_val_acc,time_stamp,train_step,val_step,train_epoch_acc,val_epoch_acc
