@@ -1,0 +1,8 @@
+einops==0.8.1
+focal_loss==0.0.7
+numpy==2.3.1
+omegaconf==2.3.0
+pandas==2.3.0
+torch==2.7.1
+torchio==0.20.16
+tqdm==4.67.1
