@@ -381,7 +381,7 @@ class AdaptiveFusionHead(nn.Module):
         # out = self.head(out) # Prompt-Image Pool
         return out
 
-class VisionTransformer(nn.Module):
+class Gaviko(nn.Module):
     def __init__(self,
                  *,
                  image_size,

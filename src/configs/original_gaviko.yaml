@@ -31,7 +31,7 @@
       'local_dim':20,
       'local_k':[6,6,6],
       'DHW':[10,10,10],
-      'share_factor':2,
+      'share_factor':2, # he so K, K factor
       'batch_size': 8
   },
   'train':{

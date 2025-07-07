@@ -8,6 +8,7 @@ import logging
 import os
 from tqdm import tqdm
 import numpy as np
+from sklearn.metrics import roc_auc_score, accuracy_score, cohen_kappa_score
 
 
 def inference(config):
@@ -21,9 +22,9 @@ def inference(config):
         tio.RescaleIntensity(out_min_max=(0,1)),
     ])
 
-    test_df = generate_csv(config['data']['image_folder'])
+    test_df = pd.read_csv(config['data']['data_path'])
 
-    test_ds = CustomDatasetPrediction(test_df, transforms=test_transforms)
+    test_ds = CustomDataset(test_df, transforms=test_transforms)
     test_loader = DataLoader(test_ds, batch_size=config['model']['batch_size'], shuffle=False, num_workers=config['data']['num_workers'], pin_memory=True)
     model = VisionTransformer(
         image_size=config['model']['image_size'],
@@ -59,31 +60,42 @@ def inference(config):
     else:
         logging.error(f"Model weights not found at {model_path}. Please check the path.")
         return
+
+    y_pred = []
+    y_test = []
+    y_pred_proba = []
+    test_correct = 0.0
     model.eval()
-    all_outputs = []
-
     with torch.no_grad():
-        for inputs in tqdm(test_loader, desc="Running Inference"):
-            inputs = inputs.to(device)  
+        for inputs, labels in tqdm(test_loader):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
+            outputs = model(inputs)
 
-            outputs = model(inputs)  
+            y_test.extend(labels.cpu().numpy())
+            y_pred.extend(torch.argmax(outputs, dim=1).cpu().numpy())
+            y_pred_proba.extend(outputs.softmax(dim=1).cpu().numpy())
 
-            predicted_classes = torch.argmax(outputs, dim=1).cpu().numpy() 
+    y_test = np.array(y_test)
+    y_pred_proba = np.array(y_pred_proba)
+    y_pred = np.array(y_pred)
 
-            all_outputs.append(predicted_classes)
-
-    all_outputs = np.concatenate(all_outputs, axis=0)  
-    print(f"Final outputs shape: {all_outputs.shape}")
-
-    test_df['outputs'] = all_outputs.tolist()
+    test_acc = accuracy_score(y_test, y_pred)
+    test_qkv = cohen_kappa_score(y_test, y_pred, weights='quadratic')
+    test_auc = roc_auc_score(y_test, y_pred_proba, multi_class='ovr', average='macro')
+    logging.info(f"Test Accuracy: {test_acc}")
+    logging.info(f"Test Quadratic Kappa: {test_qkv}")
+    logging.info(f"Test AUC: {test_auc}")
+    
+    test_df['outputs'] = y_pred.tolist()
 
     test_df['mri_path'] = test_df['mri_path'].apply(lambda x: os.path.basename(x))
 
     output_df = test_df[['mri_path', 'outputs']]
-
+    
     output_df['outputs'] = output_df['outputs'].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
-
+    
     results_dir = config['utils']['results_dir']
     os.makedirs(results_dir, exist_ok=True)
     logging.info(f"Saving inference outputs to {results_dir}")
@@ -92,6 +104,12 @@ def inference(config):
 
     output_df.to_csv(output_csv_path, index=False)
     print(f"Results saved to {output_csv_path}")
+
+    with open(os.path.join(results_dir, 'inference_results.txt'), 'w') as f:
+        f.write(f"Test Accuracy: {test_acc}\n")
+        f.write(f"Test Quadratic Kappa: {test_qkv}\n")
+        f.write(f"Test AUC: {test_auc}\n")
+
 def generate_csv(image_folder):
     """
     Generates a CSV file with image paths and labels.
@@ -120,12 +138,15 @@ if __name__ == "__main__":
                         help='Path to the folder containing MRI images')
     parser.add_argument('--results_dir', type=str, default='./',
                         help='Directory to save inference results')
+    parser.add_argument('--data_path', type=str, required=True,
+                        help='Directory to save logs')
     parser.add_argument('--model_path', type=str, required=True,
                         help='Path to the trained model weights')
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
     config['data']['image_folder'] = args.image_folder
+    config['data']['data_path'] = args.data_path
     config['utils']['results_dir'] = args.results_dir
     config['utils']['model_path'] = args.model_path
     os.makedirs(config['utils']['results_dir'], exist_ok=True)

@@ -10,12 +10,61 @@ from tqdm import tqdm
 import numpy as np
 from focal_loss import FocalLoss
 from torch.optim.lr_scheduler import OneCycleLR
+
+
+
 import wandb
 # import paht to sys
 from omegaconf import OmegaConf
 
 from utils.logging import CSVLogger
 
+class DataPreprocessor:
+    def __init__(self, config):
+        self.config = config
+
+    def preprocess(self, df):
+        spatial_augment = {
+            tio.RandomAffine(degrees=15, p=0.5),
+            tio.RandomFlip(axes=(0), flip_probability=0.5)
+        }
+
+        intensity_augment = {
+            tio.RandomNoise(): 0.25,
+            tio.RandomBiasField(): 0.25,
+            tio.RandomBlur(std=(0,1.5)): 0.25,
+            tio.RandomMotion(): 0.25,
+        }
+
+        train_transforms = tio.Compose([
+            tio.Compose(spatial_augment, p=1),
+            # tio.OneOf(intensity_augment, p=0.75),
+            tio.RescaleIntensity(out_min_max=(0,1)),
+        ])
+
+        val_transforms = tio.Compose([
+            tio.RescaleIntensity(out_min_max=(0,1)),
+        ])
+
+        test_transforms = tio.Compose([
+            tio.RescaleIntensity(out_min_max=(0,1)),
+        ])
+
+
+        df = pd.read_csv(self.config['data']['data_path'])
+
+        train_df = df[df['subset'] == 'train'].reset_index(drop=True)
+        val_df = df[df['subset'] == 'val'].reset_index(drop=True)
+        test_df = df[df['subset'] == 'test'].reset_index(drop=True)
+
+        train_ds = CustomDataset(train_df, transforms=train_transforms, image_folder=self.config['data']['image_folder'])
+        val_ds = CustomDataset(val_df, transforms=val_transforms, image_folder=self.config['data']['image_folder'])
+        test_ds = CustomDataset(test_df, transforms=test_transforms, image_folder=self.config['data']['image_folder'])
+
+        train_loader = DataLoader(train_ds, batch_size=self.config['model']['batch_size'], shuffle=True, num_workers=self.config['data']['num_workers'], pin_memory=True)
+        test_loader = DataLoader(test_ds, batch_size=self.config['model']['batch_size'], shuffle=False, num_workers=self.config['data']['num_workers'], pin_memory=True)
+        val_loader = DataLoader(val_ds, batch_size=self.config['model']['batch_size'], shuffle=False, num_workers=self.config['data']['num_workers'], pin_memory=True)
+        return train_loader, val_loader, test_loader, train_ds, val_ds, test_ds
 
 def train(config):
     # Initialize WandB
@@ -37,48 +86,10 @@ def train(config):
     logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
-    spatial_augment = {
-        tio.RandomAffine(degrees=15, p=0.5),
-        tio.RandomFlip(axes=(0), flip_probability=0.5)
-    }
 
-    intensity_augment = {
-        tio.RandomNoise(): 0.25,
-        tio.RandomBiasField(): 0.25,
-        tio.RandomBlur(std=(0,1.5)): 0.25,
-        tio.RandomMotion(): 0.25,
-    }
-
-    train_transforms = tio.Compose([
-        tio.Compose(spatial_augment, p=1),
-        # tio.OneOf(intensity_augment, p=0.75),
-        tio.RescaleIntensity(out_min_max=(0,1)),
-    ])
-
-    val_transforms = tio.Compose([
-        tio.RescaleIntensity(out_min_max=(0,1)),
-    ])
-
-    test_transforms = tio.Compose([
-        tio.RescaleIntensity(out_min_max=(0,1)),
-    ])
-
-
-    df = pd.read_csv(config['data']['data_path'])
-
-    train_df = df[df['subset'] == 'train'].reset_index(drop=True)
-    val_df = df[df['subset'] == 'val'].reset_index(drop=True)
-    test_df = df[df['subset'] == 'test'].reset_index(drop=True)
-
-    train_ds = CustomDataset(train_df, transforms=train_transforms, image_folder=config['data']['image_folder'])
-    val_ds = CustomDataset(val_df, transforms=val_transforms, image_folder=config['data']['image_folder'])
-    test_ds = CustomDataset(test_df, transforms=test_transforms, image_folder=config['data']['image_folder'])
-
-    train_loader = DataLoader(train_ds, batch_size=config['model']['batch_size'], shuffle=True, num_workers=config['data']['num_workers'], pin_memory=True)
-    test_loader = DataLoader(test_ds, batch_size=config['model']['batch_size'], shuffle=False, num_workers=config['data']['num_workers'], pin_memory=True)
-    val_loader = DataLoader(val_ds, batch_size=config['model']['batch_size'], shuffle=False, num_workers=config['data']['num_workers'], pin_memory=True)
-
-
+    # Preprocess data
+    data_preprocessor = DataPreprocessor(config)
+    train_loader, val_loader, test_loader, train_ds, val_ds, test_ds = data_preprocessor.preprocess(pd.read_csv(config['data']['data_path']))
     model = VisionTransformer(
         image_size=config['model']['image_size'],
         image_patch_size=config['model']['image_patch_size'],
