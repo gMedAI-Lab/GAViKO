@@ -108,6 +108,7 @@ def train(config):
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
             heads=config['model']['heads'],
+            depth= config['model']['depth'],
             dim=config['model']['dim'],
             mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
