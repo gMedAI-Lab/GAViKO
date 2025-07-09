@@ -480,7 +480,8 @@ def train(config):
                 model_name = config['model']['model_type']
                 save_dir = os.path.join(config['train']['save_dir'],'experiments', model_name)
                 os.makedirs(save_dir, exist_ok=True)
-                model_path = os.path.join(save_dir, f'{model_name}_best_model_epoch{current_epoch}_acc{val_acc:.4f}.pt')
+                backbone = config['model']['backbone'].replace('-', '_') 
+                model_path = os.path.join(save_dir, f'{model_name}_{backbone}_best_model_epoch{current_epoch}_acc{val_acc:.4f}.pt')
                 torch.save(model.state_dict(), model_path)
 
                 logging.info(f"Model saved to {model_path}")

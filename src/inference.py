@@ -51,7 +51,7 @@ def inference(config):
             num_classes=config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
             num_prompts=config['model']['num_prompts'],
             prompt_latent_dim=config['model']['prompt_latent_dim'],
             local_dim=config['model']['local_dim'],
@@ -76,7 +76,7 @@ def inference(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
         )# .to(device)
 
     elif config['model']['model_type'] == 'bifit':
@@ -94,7 +94,7 @@ def inference(config):
             channels = config['model']['channels'],
             num_classes = config['model']['num_classes'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
         )
         for key, value in model.named_parameters():
             if "bias" in key:
@@ -119,7 +119,7 @@ def inference(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
             num_prompts = config['model']['num_prompts'],
         )# .to(device)
 
@@ -138,7 +138,7 @@ def inference(config):
             channels = config['model']['channels'],
             num_classes = config['model']['num_classes'],
             pool = config['model']['pool'],
-            pretrain_path=config['model']['pretrain_path'],
+            backbone=config['model']['backbone'],
             freeze_vit=config['model']['freeze_vit'],
             scale_factor=config['model']['scale_factor'],
             input_type=config['model']['input_type'],
@@ -163,7 +163,7 @@ def inference(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
         )
     elif config['model']['model_type'] == 'melo':
         model = MedicalLoRA(
@@ -180,7 +180,7 @@ def inference(config):
             channels = config['model']['channels'],
             num_classes = config['model']['num_classes'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
         )
     elif config['model']['model_type'] == 'deep_vpt' or config['model']['model_type'] == 'shallow_vpt':
         model = PromptedVisionTransformer(
@@ -198,7 +198,7 @@ def inference(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
             num_prompts = config['model']['num_prompts'],
             prompt_dropout = config['model']['prompt_dropout'],
             prompt_dim = config['model']['prompt_dim'],
@@ -242,7 +242,8 @@ def inference(config):
     os.makedirs(results_dir, exist_ok=True)
     logging.info(f"Saving inference outputs to {results_dir}")
     model_type = config['model']['model_type']
-    output_csv_path = os.path.join(results_dir, f'{model_type}_inference_results_details.csv')
+    backbone = config['model']['backbone'].replace('-', '_') 
+    output_csv_path = os.path.join(results_dir, f'{model_type}_{backbone}_inference_results_details.csv')
 
     output_df.to_csv(output_csv_path, index=False)
     print(f"Results saved to {output_csv_path}")
@@ -276,8 +277,10 @@ if __name__ == "__main__":
                         help='Directory to save inference results')
     parser.add_argument('--model_path', type=str, required=True,
                         help='Path to the trained model weights')
-    parser.add_argument('--model_type', type=str, default='gaviko',
+    parser.add_argument('--model_type', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
                         help='Type of model to use (default: gaviko)')
+    parser.add_argument('--backbone', type=str, default=None, choices=['vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'],
+                        help='Backbone model to use (default: vit-b16)')
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
@@ -285,6 +288,7 @@ if __name__ == "__main__":
     config['utils']['results_dir'] = args.results_dir
     config['utils']['model_path'] = args.model_path
     config['model']['model_type'] = args.model_type
+    config['model']['backbone'] = args.backbone if args.backbone else config['model']['backbone']
     os.makedirs(config['utils']['results_dir'], exist_ok=True)
     logging.info(f"Config: {config}")
     inference(config)

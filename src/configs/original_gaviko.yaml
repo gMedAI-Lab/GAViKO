@@ -27,7 +27,7 @@
       'freeze_vit':True,
       'pool':'cls',
       # 'backbone':'/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth',
-      'backbone': 'vit-b16', # 'vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'
+      'backbone': 'vit-t16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'
       'num_prompts':32,
       'prompt_latent_dim':20,
       'local_dim':20,

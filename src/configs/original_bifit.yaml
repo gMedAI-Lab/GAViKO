@@ -23,7 +23,7 @@
       'channels':1,
       'num_classes':5,
       'pool':'cls',
-      'backbone': 'vit-b16', # 'vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'
+      'backbone': 'vit-b16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'
   },
   'train':{
       'num_epochs': 5,
