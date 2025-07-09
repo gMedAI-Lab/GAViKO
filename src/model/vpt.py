@@ -93,8 +93,22 @@ class VisionTransformer(nn.Module):
                  dim_head = 64,
                  dropout = 0.,
                  emb_dropout = 0.,
-                 pretrain_path=None):
+                 backbone=None):
         super().__init__()
+        vit_config_map={
+            'vit-b16': {'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072},
+            'vit-t16': {'depth': 12, 'heads': 12, 'dim': 192, 'mlp_dim': 768},
+            'vit-s16': {'depth': 12, 'heads': 12, 'dim': 384, 'mlp_dim': 1536},
+            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},    
+        }
+        
+        if backbone is not None:
+            if backbone.lower() not in vit_config_map:
+                raise ValueError(f"Unsupported backbone: {backbone}. Supported backbones are: {list(vit_config_map.keys())}")
+            depth = vit_config_map[backbone.lower()]['depth']
+            heads = vit_config_map[backbone.lower()]['heads']
+            dim = vit_config_map[backbone.lower()]['dim']
+            mlp_dim = vit_config_map[backbone.lower()]['mlp_dim']
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
 
@@ -126,9 +140,9 @@ class VisionTransformer(nn.Module):
 
         self.mlp_head = nn.Linear(dim, num_classes)
 
-        if pretrain_path is not None:
-            self.load_pretrain(pretrain_path)
-            print(f'Load pretrained {pretrain_path} sucessfully!')
+        if backbone is not None:
+            self.load_pretrain(backbone)
+            print(f'Load pretrained {backbone} sucessfully!')
 
     def load_pretrain(self, backbone):
         import timm
@@ -139,7 +153,7 @@ class VisionTransformer(nn.Module):
 
         if backbone.lower() == 'vit-b16':
             backbone_type = 'vit_base_patch16_224_in21k'
-        elif backbone.lower() == 'vit-b32':
+        elif backbone.lower() == 'vit-t16':
             backbone_type = 'vit_tiny_patch16_224_in21k'
         elif backbone.lower() == 'vit-s16':
             backbone_type = 'vit_small_patch16_224_in21k'

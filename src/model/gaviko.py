@@ -409,6 +409,21 @@ class Gaviko(nn.Module):
                  share_factor = 1,
                 ):
         super().__init__()
+
+        vit_config_map={
+            'vit-b16': {'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072},
+            'vit-t16': {'depth': 12, 'heads': 3, 'dim': 192, 'mlp_dim': 768},
+            'vit-s16': {'depth': 12, 'heads': 6, 'dim': 384, 'mlp_dim': 1536},
+            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},    
+        }
+        
+        if backbone is not None:
+            if backbone.lower() not in vit_config_map:
+                raise ValueError(f"Unsupported backbone: {backbone}. Supported backbones are: {list(vit_config_map.keys())}")
+            depth = vit_config_map[backbone.lower()]['depth']
+            heads = vit_config_map[backbone.lower()]['heads']
+            dim = vit_config_map[backbone.lower()]['dim']
+            mlp_dim = vit_config_map[backbone.lower()]['mlp_dim']
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
 
@@ -426,7 +441,7 @@ class Gaviko(nn.Module):
         self.local_dim = local_dim
         self.local_k = local_k
         self.prompt_latent_dim = prompt_latent_dim
-
+    
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
         self.conv_proj = nn.Sequential(
@@ -452,6 +467,7 @@ class Gaviko(nn.Module):
                                        local_dim,
                                        dropout)
 
+
         self.pool = pool
         self.to_latent = nn.Identity()
 
@@ -471,6 +487,7 @@ class Gaviko(nn.Module):
 
         ##########################################
 
+    
         self.freeze_vit = freeze_vit
         if self.freeze_vit:
             for k, p in self.named_parameters():
@@ -572,6 +589,7 @@ class Gaviko(nn.Module):
                 module.eval()
 
     def load_pretrain(self, backbone):
+
         import timm
         import os
 
@@ -580,7 +598,7 @@ class Gaviko(nn.Module):
 
         if backbone.lower() == 'vit-b16':
             backbone_type = 'vit_base_patch16_224_in21k'
-        elif backbone.lower() == 'vit-b32':
+        elif backbone.lower() == 'vit-t16':
             backbone_type = 'vit_tiny_patch16_224_in21k'
         elif backbone.lower() == 'vit-s16':
             backbone_type = 'vit_small_patch16_224_in21k'
