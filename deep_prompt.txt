@@ -1,2 +1,0 @@
-Deep prompt: False
-Deep prompt: False
