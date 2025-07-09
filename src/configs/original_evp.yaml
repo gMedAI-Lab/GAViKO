@@ -20,20 +20,16 @@
       'mlp_dim':3072,
       'dropout':0.1,
       'emb_dropout':0.1,
-      'attn_drop':0.2,
-      'proj_drop':0.2,
       'channels':1,
       'num_classes':5,
-      'freeze_vit':True,
       'pool':'cls',
-      # 'backbone':'/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth',
       'backbone': 'vit-b16', # 'vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'
-      'num_prompts':32,
-      'prompt_latent_dim':20,
-      'local_dim':20,
-      'local_k':[6,6,6],
-      'DHW':[10,10,10],
-      'share_factor':2, # he so K, K factor
+      'freeze_vit':True,
+      'scale_factor':4,
+      'input_type':'fft',
+      'freq_nums':0.25,
+      'handcrafted_tune':True,
+      'embedding_tune':True,
   },
   'train':{
       'num_epochs': 5,
@@ -57,8 +53,8 @@
   },
   'wandb':{
     'enable': False,
-    'project': 'gaviko',
-    'name': 'gaviko_training',
+    'project': 'evp',
+    'name': 'evp_training',
     'log_model': True,
     'save_code': True,
     'dir': '/mnt/e/workspace/gsoft/log'
