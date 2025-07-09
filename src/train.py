@@ -119,7 +119,7 @@ def train(config):
             num_classes=config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            backbone = config['model']['backbone'],
             num_prompts=config['model']['num_prompts'],
             prompt_latent_dim=config['model']['prompt_latent_dim'],
             local_dim=config['model']['local_dim'],
@@ -144,7 +144,7 @@ def train(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            pretrain_path = config['model']['backbone'],
         )# .to(device)
 
     elif config['model']['model_type'] == 'bifit':
@@ -162,7 +162,7 @@ def train(config):
             channels = config['model']['channels'],
             num_classes = config['model']['num_classes'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            pretrain_path = config['model']['backbone'],
         )
         for key, value in model.named_parameters():
             if "bias" in key:
@@ -187,7 +187,7 @@ def train(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            pretrain_path = config['model']['backbone'],
             num_prompts = config['model']['num_prompts'],
         )# .to(device)
 
@@ -206,7 +206,7 @@ def train(config):
             channels = config['model']['channels'],
             num_classes = config['model']['num_classes'],
             pool = config['model']['pool'],
-            pretrain_path=config['model']['pretrain_path'],
+            pretrain_path=config['model']['backbone'],
             freeze_vit=config['model']['freeze_vit'],
             scale_factor=config['model']['scale_factor'],
             input_type=config['model']['input_type'],
@@ -231,7 +231,7 @@ def train(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            pretrain_path = config['model']['backbone'],
         )
     elif config['model']['model_type'] == 'melo':
         model = MedicalLoRA(
@@ -248,7 +248,7 @@ def train(config):
             channels = config['model']['channels'],
             num_classes = config['model']['num_classes'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            pretrain_path = config['model']['backbone'],
         )
     elif config['model']['model_type'] == 'deep_vpt' or config['model']['model_type'] == 'shallow_vpt':
         model = PromptedVisionTransformer(
@@ -266,7 +266,7 @@ def train(config):
             num_classes = config['model']['num_classes'],
             freeze_vit = config['model']['freeze_vit'],
             pool = config['model']['pool'],
-            pretrain_path = config['model']['pretrain_path'],
+            pretrain_path = config['model']['backbone'],
             num_prompts = config['model']['num_prompts'],
             prompt_dropout = config['model']['prompt_dropout'],
             prompt_dim = config['model']['prompt_dim'],
@@ -513,6 +513,10 @@ def main():
                         choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt','shallow_vpt'],
                         help='Model to train: gaviko, adaptformer, bifit, dvpt, evp, ssf, melo, deep_vpt, shallow_vpt')
     parser.add_argument('--wandb',default=None, help='Enable WandB logging')
+
+    parser.add_argument('--backbone', type=str, default=None,choices=['vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'],
+                        help='Backbone model to use: vit-b16, vit-b32, vit-s16, vit-l16')
+    
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
@@ -522,6 +526,8 @@ def main():
         config['model']['deep_prompt'] = True
     elif config['model']['model_type'] == 'shallow_vpt':
         config['model']['deep_prompt'] = False
+    config['model']['backbone'] = args.backbone if args.backbone is not None else config['model']['backbone']
+    
     logging.info(f"Config: {config}")
     train(config)
 

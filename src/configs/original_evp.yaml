@@ -23,7 +23,7 @@
       'channels':1,
       'num_classes':5,
       'pool':'cls',
-      'pretrain_path':'/mnt/e/workspace/gsoft/vit-base-patch16-224-in21k.pth',
+      'backbone': 'vit-b16', # 'vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'
       'freeze_vit':True,
       'scale_factor':4,
       'input_type':'fft',
@@ -32,7 +32,7 @@
       'embedding_tune':True,
   },
   'train':{
-      'num_epochs': 30,
+      'num_epochs': 5,
       'lr': 1e-4,
       'weight_decay': 1e-4,
       'warmup_steps': 1000,

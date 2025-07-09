@@ -397,7 +397,7 @@ class Gaviko(nn.Module):
                  dim_head = 64,
                  dropout = 0.,
                  emb_dropout = 0.,
-                 pretrain_path=None,
+                 backbone=None,
                  num_prompts=8,
                  prompt_latent_dim=20,
                  local_dim=20,
@@ -479,10 +479,10 @@ class Gaviko(nn.Module):
                 if ("head" in k or "prompt" in k or "local_attn" in k):
                     p.requires_grad = True
 
-        if pretrain_path is not None:
-            print(f'Loading pretrained {pretrain_path}...')
-            self.load_pretrain(pretrain_path)
-            print(f'Load pretrained {pretrain_path} sucessfully!')
+        if backbone is not None:
+            print(f'Loading pretrained {backbone}...')
+            self.load_pretrain(backbone)
+            print(f'Load pretrained {backbone} sucessfully!')
 
         self.init_weights()
 
@@ -571,8 +571,31 @@ class Gaviko(nn.Module):
             for module in self.children():
                 module.eval()
 
-    def load_pretrain(self, pretrain_path):
-        jax_dict = torch.load(pretrain_path, map_location='cuda' if torch.cuda.is_available() else 'cpu')
+    def load_pretrain(self, backbone):
+        import timm
+        import os
+
+        save_dir = './pretrained'
+        os.makedirs(save_dir, exist_ok=True)
+
+        if backbone.lower() == 'vit-b16':
+            backbone_type = 'vit_base_patch16_224_in21k'
+        elif backbone.lower() == 'vit-b32':
+            backbone_type = 'vit_tiny_patch16_224_in21k'
+        elif backbone.lower() == 'vit-s16':
+            backbone_type = 'vit_small_patch16_224_in21k'
+        elif backbone.lower() == 'vit-l16':
+            backbone_type = 'vit_large_patch16_224_in21k'
+        else:
+            print('Warning: The model initizalizes without pretrained knowledge!')
+        model = timm.create_model(backbone_type, pretrained=True)
+
+        # Lưu state_dict
+        save_path = os.path.join(save_dir, backbone_type)
+        torch.save(model.state_dict(), save_path)
+
+        print(f"Pretrained {backbone} download successfully!'")
+        jax_dict = torch.load(save_path, map_location='cpu')
         new_dict = {}
 
         def interpolate_pos_embedding(pre_pos_embed):

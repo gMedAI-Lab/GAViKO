@@ -218,9 +218,32 @@ class DynamicVisualPromptTuning(nn.Module):
             for module in self.children():
                 module.eval()
 
-    def load_pretrain(self, pretrain_path):
+    def load_pretrain(self, backbone):
+        import timm
+        import os
 
-        jax_dict = torch.load(pretrain_path, map_location='cpu')
+        save_dir = './pretrained'
+        os.makedirs(save_dir, exist_ok=True)
+
+        if backbone.lower() == 'vit-b16':
+            backbone_type = 'vit_base_patch16_224_in21k'
+        elif backbone.lower() == 'vit-b32':
+            backbone_type = 'vit_tiny_patch16_224_in21k'
+        elif backbone.lower() == 'vit-s16':
+            backbone_type = 'vit_small_patch16_224_in21k'
+        elif backbone.lower() == 'vit-l16':
+            backbone_type = 'vit_large_patch16_224_in21k'
+        else:
+            print('Warning: The model initizalizes without pretrained knowledge!')
+        model = timm.create_model(backbone_type, pretrained=True)
+
+        # Lưu state_dict
+        save_path = os.path.join(save_dir, backbone)
+        torch.save(model.state_dict(), save_path)
+
+        print(f"Pretrained {backbone} download successfully!'")
+        jax_dict = torch.load(save_path, map_location='cpu')
+
         new_dict = {}
 
         def interpolate_pos_embedding(pre_pos_embed):
