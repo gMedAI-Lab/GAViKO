@@ -9,3 +9,4 @@ torchio==0.20.16
 numpy==2.3.1
 pandas==2.3.0
 omegaconf==2.3.0
+scipy == 1.12.1
