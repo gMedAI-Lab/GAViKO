@@ -167,7 +167,7 @@ class LocalAttention(BaseFusionAttention):
     def get_tokens(self, local_latent):
         return local_latent
 
-class Awakening_Prompt(nn.Module):
+class Awakening_Prompt(nn.Module): # GPA
     def __init__(self, dim, num_prompts, prompt_latent_dim=20):
         super().__init__()
         self.latent_dim = prompt_latent_dim
@@ -616,7 +616,7 @@ class Gaviko(nn.Module):
         save_path = os.path.join(save_dir, backbone_type)
         torch.save(model.state_dict(), save_path)
 
-        print(f"Pretrained {backbone} download successfully!'")
+        print(f"Pretrained {backbone} downloaded successfully")
         jax_dict = torch.load(save_path, map_location='cpu')
         new_dict = {}
 

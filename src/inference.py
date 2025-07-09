@@ -22,7 +22,7 @@ def inference(config):
     time_stamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
     logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f"Using device: {device}")
+    print(f"Using device: {device}")
 
     test_transforms = tio.Compose([
         tio.RescaleIntensity(out_min_max=(0,1)),
@@ -205,15 +205,21 @@ def inference(config):
             deep_prompt=config['model']['deep_prompt']
         )
     model.to(device)
-    #load trained weights
-    model_path = config['utils']['model_path']
-    if os.path.exists(model_path):
-        logging.info(f"Loading model weights from {model_path}")
-        model.load_state_dict(torch.load(model_path, map_location=device))
+    # Load trained weights
+    if config['utils']['model_path']:
+        model_path = config['utils']['model_path']
+        if os.path.exists(model_path):
+            print(f"Loading model weights from {model_path}")
+            model.load_state_dict(torch.load(model_path, map_location=device))
+        else:
+            raise FileNotFoundError(f"Model weights not found at {model_path}. Please check the path.")
     else:
-        logging.error(f"Model weights not found at {model_path}. Please check the path.")
-        return
+        print(f"Model path is not provided. {config['model']['model_type']} weights are initialized randomly.")
+    
+    print(model)
+
     model.eval()
+
     all_outputs = []
 
     with torch.no_grad():
@@ -240,13 +246,13 @@ def inference(config):
 
     results_dir = config['utils']['results_dir']
     os.makedirs(results_dir, exist_ok=True)
-    logging.info(f"Saving inference outputs to {results_dir}")
     model_type = config['model']['model_type']
     backbone = config['model']['backbone'].replace('-', '_') 
     output_csv_path = os.path.join(results_dir, f'{model_type}_{backbone}_inference_results_details.csv')
 
     output_df.to_csv(output_csv_path, index=False)
     print(f"Results saved to {output_csv_path}")
+
 def generate_csv(image_folder):
     """
     Generates a CSV file with image paths and labels.
@@ -271,16 +277,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inference script for Gaviko model")
     parser.add_argument('--config', type=str, default='/workspace/train_deep_prompt/configs/original_gaviko.yaml',
                         help='Path to the configuration file')
-    parser.add_argument('--image_folder', type=str, required=True,
-                        help='Path to the folder containing MRI images')
-    parser.add_argument('--results_dir', type=str, default='./',
+    parser.add_argument('--results_dir', type=str, default='./outputs',
                         help='Directory to save inference results')
-    parser.add_argument('--model_path', type=str, required=True,
+    parser.add_argument('--model_path', type=str, required=False,
                         help='Path to the trained model weights')
     parser.add_argument('--model', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
                         help='Type of model to use (default: gaviko)')
-    parser.add_argument('--backbone', type=str, default=None, choices=['vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'],
-                        help='Backbone model to use (default: vit-b16)')
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
@@ -296,4 +298,3 @@ if __name__ == "__main__":
     os.makedirs(config['utils']['results_dir'], exist_ok=True)
     logging.info(f"Config: {config}")
     inference(config)
-
