@@ -514,8 +514,8 @@ def main():
                         help='Model to train: gaviko, adaptformer, bifit, dvpt, evp, ssf, melo, deep_vpt, shallow_vpt')
     parser.add_argument('--wandb',default=None, help='Enable WandB logging')
 
-    parser.add_argument('--backbone', type=str, default=None,choices=['vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'],
-                        help='Backbone model to use: vit-b16, vit-b32, vit-s16, vit-l16')
+    parser.add_argument('--backbone', type=str, default=None,choices=['vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'],
+                        help='Backbone model to use: vit-b16, vit-t16, vit-s16, vit-l16')
     
     args = parser.parse_args()
 

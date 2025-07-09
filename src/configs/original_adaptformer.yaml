@@ -14,10 +14,7 @@
       'image_patch_size':16,
       'frames':120,
       'frame_patch_size':12,
-      'depth':12,
-      'heads':12,
-      'dim':768,
-      'mlp_dim':3072,
+
       'dropout':0.1,
       'emb_dropout':0.1,
       'channels':1,
