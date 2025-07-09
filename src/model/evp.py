@@ -308,9 +308,9 @@ class ExplicitVisualPrompting(nn.Module):
         super().__init__()
         vit_config_map={
             'vit-b16': {'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072},
-            'vit-t16': {'depth': 12, 'heads': 12, 'dim': 192, 'mlp_dim': 768},
-            'vit-s16': {'depth': 12, 'heads': 12, 'dim': 384, 'mlp_dim': 1536},
-            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},    
+            'vit-t16': {'depth': 12, 'heads': 3, 'dim': 192, 'mlp_dim': 768},
+            'vit-s16': {'depth': 12, 'heads': 6, 'dim': 384, 'mlp_dim': 1536},
+            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},      
         }
         
         if backbone is not None:

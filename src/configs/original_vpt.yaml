@@ -24,7 +24,7 @@
       'num_classes':5,
       'freeze_vit':True,
       'pool':'cls',
-      'backbone': 'vit-b16', # 'vit-b16', 'vit-b32', 'vit-s16', 'vit-l16'
+      'backbone': 'vit-b16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'
       'num_prompts':8,
       'prompt_dropout':0.1,
       'prompt_dim':64,
