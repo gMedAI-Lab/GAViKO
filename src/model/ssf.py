@@ -5,6 +5,9 @@ from torch import nn
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import torch.nn.functional as F
+import model.transformer_vanilla as transformer_vanilla
+
+
 def init_ssf_scale_shift(dim):
     scale = nn.Parameter(torch.ones(dim))
     shift = nn.Parameter(torch.zeros(dim))
@@ -139,9 +142,9 @@ class ScalingShiftingFeatures(nn.Module):
                  frames,
                  frame_patch_size,
                  num_classes,
-                 dim, depth,
-                 heads,
-                 mlp_dim,
+                #  dim, depth,
+                #  heads,
+                #  mlp_dim,
                  pool = 'cls',
                  channels = 3,
                  dim_head = 64,

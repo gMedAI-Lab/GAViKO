@@ -7,6 +7,10 @@ from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 import math
 import warnings
+import model.transformer_vanilla as transformer_vanilla
+
+
+
 class _LoRA_qkv_timm(nn.Module):
     """In timm it is implemented as
     self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
@@ -167,8 +171,8 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
-                FeedForward(dim, mlp_dim, dropout = dropout)
+               transformer_vanilla.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
+               transformer_vanilla.FeedForward(dim, mlp_dim, dropout = dropout)
             ]))
 
     def forward(self, x):
@@ -186,9 +190,9 @@ class MedicalLoRA(nn.Module):
                  frames,
                  frame_patch_size,
                  num_classes,
-                 dim, depth,
-                 heads,
-                 mlp_dim,
+                #  dim, depth,
+                #  heads,
+                #  mlp_dim,
                  pool = 'cls',
                  channels = 3,
                  dim_head = 64,

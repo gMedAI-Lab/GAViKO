@@ -6,6 +6,7 @@ from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 import math
 # helpers
+import model.transformer_vanilla as transformer_vanilla
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
@@ -93,8 +94,8 @@ class ResidualAttentionBlock(nn.Module):
     def __init__(self, dim, heads, dim_head, mlp_dim, num_prompts, dropout):
         super().__init__()
 
-        self.attn = Attention(dim, heads, dim_head, dropout)
-        self.mlp = FeedForward(dim, mlp_dim, dropout)
+        self.attn = transformer_vanilla.Attention(dim, heads, dim_head, dropout)
+        self.mlp = transformer_vanilla.FeedForward(dim, mlp_dim, dropout)
         self.prompt_proj = share_MLP(dim, num_prompts)
 
 
@@ -132,9 +133,9 @@ class DynamicVisualPromptTuning(nn.Module):
                  frames,
                  frame_patch_size,
                  num_classes,
-                 dim, depth,
-                 heads,
-                 mlp_dim,
+                #  dim, depth,
+                #  heads,
+                #  mlp_dim,
                  pool = 'cls',
                  channels = 3,
                  dim_head = 64,

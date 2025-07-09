@@ -39,10 +39,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads=config['model']['heads'],
-            dim=config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads=config['model']['heads'],
+            #dim=config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             attn_drop=config['model']['attn_drop'],
@@ -66,10 +66,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads=config['model']['heads'],
-            dim=config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads=config['model']['heads'],
+            #dim=config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -85,10 +85,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads=config['model']['heads'],
-            dim=config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads=config['model']['heads'],
+            #dim=config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -109,10 +109,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads= config['model']['heads'],
-            dim= config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads= config['model']['heads'],
+            #dim= config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -129,10 +129,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads=config['model']['heads'],
-            dim=config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads=config['model']['heads'],
+            #dim=config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -153,10 +153,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads=config['model']['heads'],
-            dim=config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads=config['model']['heads'],
+            #dim=config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -171,10 +171,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames=config['model']['frames'],
             frame_patch_size=config['model']['frame_patch_size'],
-            depth=config['model']['depth'],
-            heads=config['model']['heads'],
-            dim=config['model']['dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #depth=config['model']['depth'],
+            #heads=config['model']['heads'],
+            #dim=config['model']['dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -188,10 +188,10 @@ def inference(config):
             image_patch_size=config['model']['image_patch_size'],
             frames = config['model']['frames'],
             frame_patch_size = config['model']['frame_patch_size'],
-            num_layers=config['model']['num_layers'],
-            num_heads=config['model']['num_heads'],
-            hidden_dim=config['model']['hidden_dim'],
-            mlp_dim=config['model']['mlp_dim'],
+            #num_layers=config['model']['num_layers'],
+            #num_heads=config['model']['num_heads'],
+            #hidden_dim=config['model']['hidden_dim'],
+            #mlp_dim=config['model']['mlp_dim'],
             dropout=config['model']['dropout'],
             emb_dropout=config['model']['emb_dropout'],
             channels = config['model']['channels'],
@@ -277,17 +277,21 @@ if __name__ == "__main__":
                         help='Directory to save inference results')
     parser.add_argument('--model_path', type=str, required=True,
                         help='Path to the trained model weights')
-    parser.add_argument('--model_type', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
+    parser.add_argument('--model', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
                         help='Type of model to use (default: gaviko)')
     parser.add_argument('--backbone', type=str, default=None, choices=['vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'],
                         help='Backbone model to use (default: vit-b16)')
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
+    config['model']['model_type'] = args.model 
+    if config['model']['model_type'] == 'deep_vpt':
+        config['model']['deep_prompt'] = True
+    elif config['model']['model_type'] == 'shallow_vpt':
+        config['model']['deep_prompt'] = False
     config['data']['image_folder'] = args.image_folder
     config['utils']['results_dir'] = args.results_dir
     config['utils']['model_path'] = args.model_path
-    config['model']['model_type'] = args.model_type
     config['model']['backbone'] = args.backbone if args.backbone else config['model']['backbone']
     os.makedirs(config['utils']['results_dir'], exist_ok=True)
     logging.info(f"Config: {config}")

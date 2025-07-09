@@ -6,6 +6,10 @@ import copy
 from torch.nn import functional as F
 import math
 
+
+import model.transformer_vanilla as transformer_vanilla
+
+
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
 
@@ -336,12 +340,12 @@ class Transformer(nn.Module):
         ])
 
         self.attns = nn.ModuleList([
-            Attention(dim, heads, dim_head, dropout)
+            transformer_vanilla.Attention(dim, heads, dim_head, dropout)
             for _ in range(depth)
         ])
 
         self.mlps = nn.ModuleList([
-            FeedForward(dim, mlp_dim, dropout)
+            transformer_vanilla.FeedForward(dim, mlp_dim, dropout)
             for _ in range(depth)
         ])
 
@@ -389,9 +393,9 @@ class Gaviko(nn.Module):
                  frames,
                  frame_patch_size,
                  num_classes,
-                 dim, depth,
-                 heads,
-                 mlp_dim,
+                #  dim, depth,
+                #  heads,
+                #  mlp_dim,
                  pool = 'cls',
                  channels = 1,
                  dim_head = 64,

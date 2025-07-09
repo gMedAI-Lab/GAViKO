@@ -5,6 +5,9 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 # helpers
+import model.transformer_vanilla as transformer_vanilla
+
+
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
@@ -66,8 +69,8 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
-                FeedForward(dim, mlp_dim, dropout = dropout)
+                transformer_vanilla.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
+                transformer_vanilla.FeedForward(dim, mlp_dim, dropout = dropout)
             ]))
 
     def forward(self, x):
@@ -95,20 +98,7 @@ class VisionTransformer(nn.Module):
                  emb_dropout = 0.,
                  backbone=None):
         super().__init__()
-        vit_config_map={
-            'vit-b16': {'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072},
-            'vit-t16': {'depth': 12, 'heads': 3, 'dim': 192, 'mlp_dim': 768},
-            'vit-s16': {'depth': 12, 'heads': 6, 'dim': 384, 'mlp_dim': 1536},
-            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},      
-        }
-        
-        if backbone is not None:
-            if backbone.lower() not in vit_config_map:
-                raise ValueError(f"Unsupported backbone: {backbone}. Supported backbones are: {list(vit_config_map.keys())}")
-            depth = vit_config_map[backbone.lower()]['depth']
-            heads = vit_config_map[backbone.lower()]['heads']
-            dim = vit_config_map[backbone.lower()]['dim']
-            mlp_dim = vit_config_map[backbone.lower()]['mlp_dim']
+
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
 
@@ -257,10 +247,10 @@ class PromptedVisionTransformer(nn.Module):
                  image_patch_size: int,
                  frames: int,
                  frame_patch_size : int,
-                 num_layers: int,
-                 num_heads: int,
-                 hidden_dim: int,
-                 mlp_dim: int,
+                #  num_layers: int,
+                #  num_heads: int,
+                #  hidden_dim: int,
+                #  mlp_dim: int,
                  dropout: 0.0,
                  emb_dropout: 0.0,
                  num_classes = 5,
@@ -268,13 +258,27 @@ class PromptedVisionTransformer(nn.Module):
                  dim_head = 64,
                  freeze_vit = True,
                  pool = 'cls',
-                 pretrain_path = None,
+                 backbone = None,
                  prompt_dropout = 0.0,
                  prompt_dim = 64,
                  num_prompts = 8,
                  deep_prompt = True,
                  ):
         super().__init__()
+        vit_config_map={
+            'vit-b16': {'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072},
+            'vit-t16': {'depth': 12, 'heads': 3, 'dim': 192, 'mlp_dim': 768},
+            'vit-s16': {'depth': 12, 'heads': 6, 'dim': 384, 'mlp_dim': 1536},
+            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},      
+        }
+        
+        if backbone is not None:
+            if backbone.lower() not in vit_config_map:
+                raise ValueError(f"Unsupported backbone: {backbone}. Supported backbones are: {list(vit_config_map.keys())}")
+            num_layers = vit_config_map[backbone.lower()]['depth']
+            num_heads = vit_config_map[backbone.lower()]['heads']
+            hidden_dim = vit_config_map[backbone.lower()]['dim']
+            mlp_dim = vit_config_map[backbone.lower()]['mlp_dim']
         self.image_size = image_size
         self.num_layers = num_layers
         self.image_patch_size = image_patch_size
@@ -284,7 +288,8 @@ class PromptedVisionTransformer(nn.Module):
         self.dropout = dropout
         self.num_classes = num_classes
         self.deep_prompt = deep_prompt
-
+        with open('deep_prompt.txt', 'a') as f:
+            f.write(f'Deep prompt: {self.deep_prompt}\n')
         self.prompt_proj = nn.Linear(prompt_dim, hidden_dim)
         self.prompt_dropout = nn.Dropout(prompt_dropout)
 
@@ -314,7 +319,7 @@ class PromptedVisionTransformer(nn.Module):
                                      dim_head = dim_head,
                                      dropout = dropout,
                                      emb_dropout = emb_dropout,
-                                     pretrain_path=pretrain_path)
+                                     backbone=backbone)
         self.freeze_vit = freeze_vit
 
         # self.init_head_weights()
@@ -402,6 +407,7 @@ class PromptedVisionTransformer(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.vision_transformer.pos_embedding[:, :(n + 1)]
         x = self.vision_transformer.dropout(x)
+
         if self.deep_prompt==True:
             return self.forward_deep_prompt(x)
         else:
