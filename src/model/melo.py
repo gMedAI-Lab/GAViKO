@@ -7,6 +7,11 @@ from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 import math
 import warnings
+import model.transformer_vanilla as transformer_vanilla
+from utils.load_pretrained  import load_pretrain,mapping_vit
+
+
+
 class _LoRA_qkv_timm(nn.Module):
     """In timm it is implemented as
     self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
@@ -167,8 +172,8 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
-                FeedForward(dim, mlp_dim, dropout = dropout)
+               transformer_vanilla.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
+               transformer_vanilla.FeedForward(dim, mlp_dim, dropout = dropout)
             ]))
 
     def forward(self, x):
@@ -186,9 +191,9 @@ class MedicalLoRA(nn.Module):
                  frames,
                  frame_patch_size,
                  num_classes,
-                 dim, depth,
-                 heads,
-                 mlp_dim,
+                #  dim, depth,
+                #  heads,
+                #  mlp_dim,
                  pool = 'cls',
                  channels = 3,
                  dim_head = 64,
@@ -196,20 +201,8 @@ class MedicalLoRA(nn.Module):
                  emb_dropout = 0.,
                  backbone=None):
         super().__init__()
-        vit_config_map={
-            'vit-b16': {'depth': 12, 'heads': 12, 'dim': 768, 'mlp_dim': 3072},
-            'vit-t16': {'depth': 12, 'heads': 3, 'dim': 192, 'mlp_dim': 768},
-            'vit-s16': {'depth': 12, 'heads': 6, 'dim': 384, 'mlp_dim': 1536},
-            'vit-l16': {'depth': 24, 'heads': 16, 'dim': 1024, 'mlp_dim': 4096},    
-        }
-        
-        if backbone is not None:
-            if backbone.lower() not in vit_config_map:
-                raise ValueError(f"Unsupported backbone: {backbone}. Supported backbones are: {list(vit_config_map.keys())}")
-            depth = vit_config_map[backbone.lower()]['depth']
-            heads = vit_config_map[backbone.lower()]['heads']
-            dim = vit_config_map[backbone.lower()]['dim']
-            mlp_dim = vit_config_map[backbone.lower()]['mlp_dim']
+        depth, heads, dim, mlp_dim = mapping_vit(backbone)
+
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
 
@@ -243,97 +236,11 @@ class MedicalLoRA(nn.Module):
         self.mlp_head = nn.Linear(dim, num_classes)
 
         if backbone is not None:
-            self.load_pretrain(backbone)
+            print(f'Loading pretrained {backbone}...')
+            save_pretrain_dir = './pretrained'
+            new_dict = load_pretrain(backbone, self.num_patches, self.conv_proj[0].weight.shape[2],save_pretrain_dir)
+            self.load_state_dict(new_dict, strict=False)
             print(f'Load pretrained {backbone} sucessfully!')
-
-    def load_pretrain(self, backbone):
-        import timm
-        import os
-
-        save_dir = './pretrained'
-        os.makedirs(save_dir, exist_ok=True)
-
-        if backbone.lower() == 'vit-b16':
-            backbone_type = 'vit_base_patch16_224_in21k'
-        elif backbone.lower() == 'vit-t16':
-            backbone_type = 'vit_tiny_patch16_224_in21k'
-        elif backbone.lower() == 'vit-s16':
-            backbone_type = 'vit_small_patch16_224_in21k'
-        elif backbone.lower() == 'vit-l16':
-            backbone_type = 'vit_large_patch16_224_in21k'
-        else:
-            print('Warning: The model initizalizes without pretrained knowledge!')
-        model = timm.create_model(backbone_type, pretrained=True)
-
-        # Lưu state_dict
-        save_path = os.path.join(save_dir, 'vit_b16_in21k_state_dict.pth')
-        torch.save(model.state_dict(), save_path)
-
-        print(f"Pretrained {backbone} download successfully!'")
-        jax_dict = torch.load(save_path, map_location='cpu')
-
-        new_dict = {}
-
-        def interpolate_pos_embedding(pre_pos_embed):
-            cls_token, pretrained_pos_embed = pre_pos_embed[:, :1, :], pre_pos_embed[:, 1:, :]  # [1, 1, 768], [1, 196, 768]
-            new_num_patches = self.num_patches # 1000
-            old_num_patches = int(pretrained_pos_embed.shape[1] ** 0.5) # 14
-            pretrained_pos_embed = pretrained_pos_embed.reshape(1, old_num_patches, old_num_patches, -1).permute(0, 3, 1, 2)  # [1, 768, 14, 14]
-            pretrained_pos_embed = pretrained_pos_embed.unsqueeze(2)  # [1, 768, 1, 14, 14]
-            new_size = round(new_num_patches ** (1/3))
-            pretrained_pos_embed = F.interpolate(pretrained_pos_embed, size=(new_size, new_size, new_size), mode='trilinear', align_corners=False)  # [1, 768, 10, 10, 10]
-            pretrained_pos_embed = pretrained_pos_embed.permute(0, 2, 3, 4, 1).reshape(1, new_size*new_size*new_size, -1) # [1,1000, 768]
-            new_pos_embed = torch.cat([cls_token, pretrained_pos_embed], dim=1)
-            return new_pos_embed
-
-        def mean_kernel(patch_emb_weight):
-            patch_emb_weight = patch_emb_weight.mean(dim=1, keepdim=True)  # Shape: [768, 1, 16, 16]
-            depth = self.conv_proj[0].weight.shape[2]
-            patch_emb_weight = patch_emb_weight.unsqueeze(2).repeat(1, 1, depth, 1, 1)  # Shape: [768, 1, 12, 16, 16]
-            return patch_emb_weight
-
-        def add_item(key, value):
-            key = key.replace('blocks', 'transformer.layers')
-            new_dict[key] = value
-
-        for key, value in jax_dict.items():
-            if key == 'cls_token':
-                new_dict[key] = value
-
-            elif 'norm1' in key:
-                new_key = key.replace('norm1', '0.norm')
-                add_item(new_key, value)
-            elif 'attn.qkv' in key:
-                new_key = key.replace('attn.qkv', '0.to_qkv')
-                add_item(new_key, value)
-            elif 'attn.proj' in key:
-                new_key = key.replace('attn.proj', '0.to_out.0')
-                add_item(new_key, value)
-            elif 'norm2' in key:
-                new_key = key.replace('norm2', '1.net.0')
-                add_item(new_key, value)
-            elif 'mlp.fc1' in key:
-                new_key = key.replace('mlp.fc1', '1.net.1')
-                add_item(new_key, value)
-            elif 'mlp.fc2' in key:
-                new_key = key.replace('mlp.fc2', '1.net.4')
-                add_item(new_key, value)
-            elif 'patch_embed.proj.weight' in key:
-                new_key = key.replace('patch_embed.proj.weight', 'conv_proj.0.weight')
-                value = mean_kernel(value)
-                add_item(new_key, value)
-            elif 'patch_embed.proj.bias' in key:
-                new_key = key.replace('patch_embed.proj.bias', 'conv_proj.0.bias')
-                add_item(new_key, value)
-            elif key == 'pos_embed':
-                value = interpolate_pos_embedding(value)
-                add_item('pos_embedding', value)
-            elif key == 'norm.weight':
-                add_item('transformer.norm.weight', value)
-            elif key == 'norm.bias':
-                add_item('transformer.norm.bias', value)
-
-        self.load_state_dict(new_dict, strict=False)
 
 
     def forward(self, img):

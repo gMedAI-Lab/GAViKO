@@ -26,7 +26,7 @@
       'backbone': 'vit-b16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'
   },
   'train':{
-      'num_epochs': 5,
+      'num_epochs': 1, #debugging
       'lr': 1e-4,
       'weight_decay': 1e-4,
       'warmup_steps': 1000,

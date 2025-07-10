@@ -17,8 +17,15 @@ class CSVLogger:
         os.makedirs(self.log_dir, exist_ok=True)
 
         # Generate timestamped filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.filename = os.path.join(log_dir, f"{filename_prefix}_{timestamp}.csv")
+        # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # use ver increment if file already exists
+        version = 1
+        while True:
+            filename = f"{filename_prefix}_v{version}.csv"
+            self.filename = os.path.join(log_dir, filename)
+            if not os.path.exists(self.filename):
+                break
+            version += 1
 
         self.fields = fields
 
