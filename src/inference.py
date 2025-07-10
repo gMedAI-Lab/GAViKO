@@ -15,7 +15,7 @@ import logging
 import os
 from tqdm import tqdm
 import numpy as np
-
+from utils.load_pretrained import load_vanilla_pretrain_with_adapters
 
 def inference(config):
     os.makedirs(config['utils']['log_dir'], exist_ok=True)
@@ -33,7 +33,7 @@ def inference(config):
     test_ds = CustomDatasetPrediction(test_df, transforms=test_transforms)
     test_loader = DataLoader(test_ds, batch_size=config['data']['batch_size'], shuffle=False, num_workers=config['data']['num_workers'], pin_memory=True)
 
-    if config['model']['model_type'] == 'gaviko':
+    if config['model']['method'] == 'gaviko':
         model = Gaviko(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -60,7 +60,7 @@ def inference(config):
             share_factor=config['model']['share_factor']
         )
 
-    elif config['model']['model_type'] == 'adaptformer':
+    elif config['model']['method'] == 'adaptformer':
         model = AdaptFormer(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -79,7 +79,7 @@ def inference(config):
             backbone = config['model']['backbone'],
         )# .to(device)
 
-    elif config['model']['model_type'] == 'bifit':
+    elif config['model']['method'] == 'bifit':
         model = BiFit(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -103,7 +103,7 @@ def inference(config):
                 value.requires_grad = True
             else:
                 value.requires_grad = False
-    elif config['model']['model_type'] == 'dvpt':
+    elif config['model']['method'] == 'dvpt':
         model = DynamicVisualPromptTuning(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -122,8 +122,11 @@ def inference(config):
             backbone = config['model']['backbone'],
             num_prompts = config['model']['num_prompts'],
         )# .to(device)
-
-    elif config['model']['model_type'] == 'evp':
+        print(f"Model type: {config['model']['method']}")
+        # print num_prompts
+        print(f"Number of prompts: {config['model']['num_prompts']}")
+        print(model)
+    elif config['model']['method'] == 'evp':
         model = ExplicitVisualPrompting(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -147,7 +150,7 @@ def inference(config):
             embedding_tune=config['model']['embedding_tune'],
         )# .to(device)
 
-    elif config['model']['model_type'] == 'ssf':
+    elif config['model']['method'] == 'ssf':
         model = ScalingShiftingFeatures(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -165,7 +168,7 @@ def inference(config):
             pool = config['model']['pool'],
             backbone = config['model']['backbone'],
         )
-    elif config['model']['model_type'] == 'melo':
+    elif config['model']['method'] == 'melo':
         model = MedicalLoRA(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -182,7 +185,7 @@ def inference(config):
             pool = config['model']['pool'],
             backbone = config['model']['backbone'],
         )
-    elif config['model']['model_type'] == 'deep_vpt' or config['model']['model_type'] == 'shallow_vpt':
+    elif config['model']['method'] == 'deep_vpt' or config['model']['method'] == 'shallow_vpt':
         model = PromptedVisionTransformer(
             image_size=config['model']['image_size'],
             image_patch_size=config['model']['image_patch_size'],
@@ -206,15 +209,19 @@ def inference(config):
         )
     model.to(device)
     # Load trained weights
-    if config['utils']['model_path']:
-        model_path = config['utils']['model_path']
-        if os.path.exists(model_path):
-            print(f"Loading model weights from {model_path}")
-            model.load_state_dict(torch.load(model_path, map_location=device))
+    print(f"Model type: {config['model']['method']}")
+    print(model)
+    if config['utils']['checkpoint']:
+        checkpoint_path = config['utils']['checkpoint']
+        if os.path.exists(checkpoint_path):
+            print(f"Loading model weights from {checkpoint_path}")
+            model_dict = load_vanilla_pretrain_with_adapters(config['model']['backbone'],config,checkpoint_path)
+            model.load_state_dict(model_dict, strict=False)
+            
         else:
-            raise FileNotFoundError(f"Model weights not found at {model_path}. Please check the path.")
+            raise FileNotFoundError(f"Model weights not found at {checkpoint_path}. Please check the path.")
     else:
-        print(f"Model path is not provided. {config['model']['model_type']} weights are initialized randomly.")
+        print(f"Model path is not provided. {config['model']['method']} weights are initialized randomly.")
     
     print(model)
 
@@ -232,7 +239,6 @@ def inference(config):
             predicted_classes = torch.argmax(outputs, dim=1).cpu().numpy() 
 
             all_outputs.append(predicted_classes)
-    print(all_outputs)
     all_outputs = np.concatenate(all_outputs, axis=0)  
     print(f"Final outputs shape: {all_outputs.shape}")
 
@@ -246,10 +252,17 @@ def inference(config):
 
     results_dir = config['utils']['results_dir']
     os.makedirs(results_dir, exist_ok=True)
-    model_type = config['model']['model_type']
+    method = config['model']['method']
     backbone = config['model']['backbone'].replace('-', '_') 
-    output_csv_path = os.path.join(results_dir, f'{model_type}_{backbone}_inference_results_details.csv')
-
+    # find in dir if already exists, increment the version number
+    version = 1
+    while True:
+        output_csv_name = f"{method}_{backbone}_inference_results_v{version}.csv"
+        output_csv_path = os.path.join(results_dir, output_csv_name)
+        if not os.path.exists(output_csv_path):
+            break
+        version += 1
+    print(f"Saving results to {output_csv_path}")
     output_df.to_csv(output_csv_path, index=False)
     print(f"Results saved to {output_csv_path}")
 
@@ -279,22 +292,21 @@ if __name__ == "__main__":
                         help='Path to the configuration file')
     parser.add_argument('--results_dir', type=str, default='./outputs',
                         help='Directory to save inference results')
-    parser.add_argument('--model_path', type=str, required=False,
+    parser.add_argument('--checkpoint', type=str, required=False,
                         help='Path to the trained model weights')
-    parser.add_argument('--model', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
+    parser.add_argument('--method', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
                         help='Type of model to use (default: gaviko)')
     args = parser.parse_args()
 
     config = OmegaConf.load(args.config)
-    config['model']['model_type'] = args.model 
-    if config['model']['model_type'] == 'deep_vpt':
+    config['model']['method'] = args.method 
+    if config['model']['method'] == 'deep_vpt':
         config['model']['deep_prompt'] = True
-    elif config['model']['model_type'] == 'shallow_vpt':
+    elif config['model']['method'] == 'shallow_vpt':
         config['model']['deep_prompt'] = False
-    config['data']['image_folder'] = args.image_folder
-    config['utils']['results_dir'] = args.results_dir
-    config['utils']['model_path'] = args.model_path
-    config['model']['backbone'] = args.backbone if args.backbone else config['model']['backbone']
+    # config['data']['image_folder'] = args.image_folder
+    config['utils']['results_dir'] = args.results_dir if args.results_dir is not None else config['utils']['results_dir']
+    config['utils']['checkpoint'] = args.checkpoint
     os.makedirs(config['utils']['results_dir'], exist_ok=True)
     logging.info(f"Config: {config}")
     inference(config)
