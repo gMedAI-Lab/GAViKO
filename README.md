@@ -12,8 +12,6 @@ pip install requirements.txt
 ```
 python src/inference.py \
  --config path/to/config \
- --image_folder path/to/your/image/folder \
- --results_dir path/to/your/result/folder \
  --model_path path/to/your/weights/
 ```
 
