@@ -15,10 +15,9 @@ import logging
 import os
 from tqdm import tqdm
 import numpy as np
-# from focal_loss import FocalLoss
 from torch.optim.lr_scheduler import OneCycleLR
-
-
+from torch.nn import CrossEntropyLoss
+from losses.focal_loss import FocalLoss
 
 import wandb
 # import paht to sys
@@ -163,7 +162,10 @@ def train(config):
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logging.info(f'Total trainable parameters: {total_params}')
 
-    criterion = FocalLoss(gamma=1.2)
+    if config['train']['loss_fn'] == 'focal_loss':
+        criterion = FocalLoss(gamma=1.2)
+    else:
+        criterion = CrossEntropyLoss()
 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
 
