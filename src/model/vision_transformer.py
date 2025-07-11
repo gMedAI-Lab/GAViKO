@@ -1,13 +1,21 @@
+# This implementation is adapted from:
+# https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit_3d.py
+# Original author: Phil Wang (lucidrains)
+# License: MIT
+
+# Modifications in this version:
+# - Replaced the original linear patch embedding with a 3D convolutional layer
+# - Refactored for medical 3D MRI input shape
+# - Added support for pretrained weights loading
+
 import torch
 from torch import nn
 
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 import math
 import logging
 # helpers
-import model.transformer_vanilla as transformer_vanilla
 from utils.load_pretrained  import load_pretrain, mapping_vit
 
 def pair(t):
@@ -70,18 +78,17 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                transformer_vanilla.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
-                transformer_vanilla.FeedForward(dim, mlp_dim, dropout = dropout)
+                Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
+                FeedForward(dim, mlp_dim, dropout = dropout)
             ]))
 
     def forward(self, x):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
-
         return self.norm(x)
 
-class BiFit(nn.Module):
+class VisionTransformer(nn.Module):
     def __init__(self,
                  *,
                  image_size,
@@ -89,9 +96,6 @@ class BiFit(nn.Module):
                  frames,
                  frame_patch_size,
                  num_classes,
-                #  dim, depth,
-                #  heads,
-                #  mlp_dim,
                  pool = 'cls',
                  channels = 3,
                  dim_head = 64,

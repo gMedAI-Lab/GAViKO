@@ -1,11 +1,12 @@
+# This implementation is adapted from:
+# https://github.com/dongzelian/SSF/blob/main/models/vision_transformer.py
+# Original author: Dongze Lian
+# License: MIT 
 
 import torch
 from torch import nn
 
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
-import torch.nn.functional as F
-import model.transformer_vanilla as transformer_vanilla
 import logging
 from utils.load_pretrained  import load_pretrain, mapping_vit
 

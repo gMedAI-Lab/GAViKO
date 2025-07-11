@@ -2,13 +2,11 @@ import torch
 from torch import nn
 
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
-from torch.nn import functional as F
 import math
 import logging
 
 # helpers
-import model.transformer_vanilla as transformer_vanilla
+import model.vision_transformer as vision_transformer
 from utils.load_pretrained  import load_pretrain, mapping_vit
 
 def pair(t):
@@ -130,9 +128,9 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                transformer_vanilla.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
+                vision_transformer.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
                 Adapter(dim),
-                transformer_vanilla.FeedForward(dim, mlp_dim, dropout = dropout)
+                vision_transformer.FeedForward(dim, mlp_dim, dropout = dropout)
             ]))
 
     def forward(self, x):

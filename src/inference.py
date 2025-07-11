@@ -3,11 +3,11 @@ import pandas as pd
 from data.dataset import CustomDataset,CustomDatasetPrediction
 from torch.utils.data import DataLoader
 from model.adaptformer import AdaptFormer
-from model.bifit import BiFit
+from model.vision_transformer import VisionTransformer
 from model.dvpt import DynamicVisualPromptTuning
 from model.evp import ExplicitVisualPrompting
 from model.ssf import ScalingShiftingFeatures
-from model.melo import MedicalLoRA
+from model.melo import MeLO
 from model.vpt import PromptedVisionTransformer
 from model.gaviko import Gaviko
 import torch
@@ -38,11 +38,23 @@ def inference(config):
     if config['model']['method'] == 'gaviko':
         model = Gaviko(**config['model'])
 
+    elif config['model']['method'] == 'linear':
+        model = VisionTransformer(**config['model'])
+        # Freeze all parameters except for weights and head
+        for key, value in model.named_parameters():
+            if "head" in key:
+                value.requires_grad = True
+            else:
+                value.requires_grad = False
+    
+    elif config['model']['method'] == 'fft':
+        model = VisionTransformer(**config['model'])
+
     elif config['model']['method'] == 'adaptformer':
         model = AdaptFormer(**config['model'])
 
     elif config['model']['method'] == 'bitfit':
-        model = BiFit(**config['model'])
+        model = VisionTransformer(**config['model'])
         for key, value in model.named_parameters():
             if "bias" in key:
                 value.requires_grad = True
@@ -50,6 +62,7 @@ def inference(config):
                 value.requires_grad = True
             else:
                 value.requires_grad = False
+
     elif config['model']['method'] == 'dvpt':
         model = DynamicVisualPromptTuning(**config['model'])
 
@@ -60,7 +73,9 @@ def inference(config):
         model = ScalingShiftingFeatures(**config['model'])
 
     elif config['model']['method'] == 'melo':
-        model = MedicalLoRA(**config['model'])
+        vit_model = VisionTransformer(**config['model'])
+        model = MeLO(vit=vit_model, **config['model'])
+
     elif config['model']['method'] == 'deep_vpt' or config['model']['method'] == 'shallow_vpt':
         model = PromptedVisionTransformer(**config['model'])
 
@@ -151,7 +166,7 @@ if __name__ == "__main__":
                         help='Directory to save inference results')
     parser.add_argument('--checkpoint', type=str, required=False,
                         help='Path to the trained model weights')
-    parser.add_argument('--method', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bitfit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
+    parser.add_argument('--method', type=str, default='gaviko', choices=['gaviko', 'fft', 'linear', 'adaptformer', 'bitfit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
                         help='Type of model to use (default: gaviko)')
     args = parser.parse_args()
 

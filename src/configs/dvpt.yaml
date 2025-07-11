@@ -1,28 +1,32 @@
 {
   'utils':{
     'log_dir': './src/log',
-    'phase': 'inference',  # 'train' or 'inference' or 'evaluation'
+    'phase': 'train',  # 'train' or 'inference' or 'evaluation'
   },
   'data':{
     'batch_size': 8,
     'num_workers': 8,
-    'data_path': './data/unified_xray_mri_label.csv',
+    'data_path': './data/unified_xray_mri_label.csv', # path to the CSV file containing image paths and labels
     'image_folder': './data',
-    'test_data': './data/unified_xray_mri_label.csv'
+    'test_data': './data/unified_xray_mri_label.csv' # path to the CSV file containing test image paths and labels
   },
   'model':{
       'image_size':160,
       'image_patch_size':16,
       'frames':120,
       'frame_patch_size':12,
-
+      'depth':12,
+      'heads':12,
+      'dim':768,
+      'mlp_dim':3072,
       'dropout':0.1,
       'emb_dropout':0.1,
       'channels':1,
       'num_classes':5,
       'freeze_vit':True,
-      'pool':'cls',
+      'pool':'mean',
       'backbone': 'vit-b16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'
+      'num_prompts':50,
   },
   'train':{
       'num_epochs': 1, #debugging
@@ -46,8 +50,8 @@
   },
   'wandb':{
     'enable': False,
-    'project': 'adpatformer',
-    'name': 'adpatformer_training',
+    'project': 'dvpt',
+    'name': 'dvpt_training',
     'log_model': True,
     'save_code': True,
     'dir': './src/log'

@@ -1,7 +1,7 @@
 {
   'utils':{
     'log_dir': './src/log',
-    'phase': 'inference',  # 'train' or 'inference' or 'evaluation'
+    'phase': 'train',  # 'train' or 'inference' or 'evaluation'
   },
   'data':{
     'batch_size': 8,
@@ -49,8 +49,8 @@
   },
   'wandb':{
     'enable': False,
-    'project': 'melo',
-    'name': 'melo_training',
+    'project': 'ssf',
+    'name': 'ssf_training',
     'log_model': True,
     'save_code': True,
     'dir': './src/log'

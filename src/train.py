@@ -4,11 +4,11 @@ from data.dataset import CustomDataset
 from torch.utils.data import DataLoader
 from model.gaviko import Gaviko
 from model.adaptformer import AdaptFormer
-from model.bifit import BiFit
+from model.vision_transformer import VisionTransformer
 from model.dvpt import DynamicVisualPromptTuning
 from model.evp import ExplicitVisualPrompting
 from model.ssf import ScalingShiftingFeatures
-from model.melo import MedicalLoRA
+from model.melo import MeLO
 from model.vpt import PromptedVisionTransformer
 import torch
 import logging
@@ -105,11 +105,23 @@ def train(config):
     if config['model']['method'] == 'gaviko':
         model = Gaviko(**config['model'])
 
+    elif config['model']['method'] == 'linear':
+        model = VisionTransformer(**config['model'])
+        # Freeze all parameters except for weights and head
+        for key, value in model.named_parameters():
+            if "head" in key:
+                value.requires_grad = True
+            else:
+                value.requires_grad = False
+    
+    elif config['model']['method'] == 'fft':
+        model = VisionTransformer(**config['model'])
+
     elif config['model']['method'] == 'adaptformer':
         model = AdaptFormer(**config['model'])
 
     elif config['model']['method'] == 'bitfit':
-        model = BiFit(**config['model'])
+        model = VisionTransformer(**config['model'])
         for key, value in model.named_parameters():
             if "bias" in key:
                 value.requires_grad = True
@@ -128,7 +140,8 @@ def train(config):
         model = ScalingShiftingFeatures(**config['model'])
 
     elif config['model']['method'] == 'melo':
-        model = MedicalLoRA(**config['model'])
+        vit_model = VisionTransformer(**config['model'])
+        model = MeLO(vit=vit_model, **config['model'])
 
     elif config['model']['method'] == 'deep_vpt' or config['model']['method'] == 'shallow_vpt':
         model = PromptedVisionTransformer(**config['model'])
@@ -137,24 +150,18 @@ def train(config):
     logging.info(f"Model: {model}")
     count_freeze = 0
     count_tuning = 0
-    tuning_params = []
-    freeze_params = []
+    tuning_params = [] # List to store names of trainable parameters
     for name, param in model.named_parameters():
-        # if 'prompt' in name or 'mlp_head' in name:
         if param.requires_grad == True:
             count_tuning += 1
-            # print(name, param.shape)
             tuning_params.append(name)
         else:
             count_freeze += 1
-            freeze_params.append(name)
     logging.info(f'There are {count_tuning} trainable params.')
     # logging.info(f'including: {tuning_params}')
     logging.info(f'There are {count_freeze} freeze params')
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logging.info(f'Total trainable parameters: {total_params}')
-    
-    # raise KeyError # Debugging purpose
 
     criterion = FocalLoss(gamma=1.2)
 
@@ -378,7 +385,7 @@ def main():
     parser.add_argument('--config', type=str, default='configs/original_gaviko.yaml',
                         help='Path to the configuration file')
     parser.add_argument('--method', type=str, default='gaviko',
-                        choices=['gaviko', 'adaptformer', 'bitfit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt','shallow_vpt'],
+                        choices=['gaviko', 'fft', 'linear', 'adaptformer', 'bitfit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt','shallow_vpt'],
                         help='Model to train: gaviko, adaptformer, bitfit, dvpt, evp, ssf, melo, deep_vpt, shallow_vpt')
     parser.add_argument('--results_dir', type=str, default=None,
                         help='Directory to save results')
