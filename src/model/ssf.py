@@ -6,6 +6,7 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import torch.nn.functional as F
 import model.transformer_vanilla as transformer_vanilla
+import logging
 from utils.load_pretrained  import load_pretrain, mapping_vit
 
 
@@ -152,7 +153,8 @@ class ScalingShiftingFeatures(nn.Module):
                  dropout = 0.,
                  emb_dropout = 0.,
                  backbone=None,
-                 freeze_vit=False):
+                 freeze_vit=False,
+                 **kwargs):
         super().__init__()
         depth, heads, dim, mlp_dim = mapping_vit(backbone)
 
@@ -189,14 +191,14 @@ class ScalingShiftingFeatures(nn.Module):
         self.mlp_head = nn.Linear(dim, num_classes)
 
         self.freeze_vit = freeze_vit
-        # self.init_head_weights()
+        self.init_head_weights()
 
         if backbone is not None:
-            print(f'Loading pretrained {backbone}...')
+            logging.info(f'Loading pretrained {backbone}...')
             save_pretrain_dir = './pretrained'
             new_dict = load_pretrain(backbone, self.num_patches, self.conv_proj[0].weight.shape[2],save_pretrain_dir)
             self.load_state_dict(new_dict, strict=False)
-            print(f'Load pretrained {backbone} sucessfully!')
+            logging.info(f'Load pretrained {backbone} sucessfully!')
 
         if self.freeze_vit:
             for k, p in self.named_parameters():
@@ -208,7 +210,7 @@ class ScalingShiftingFeatures(nn.Module):
     def init_head_weights(self):
         nn.init.xavier_uniform_(self.mlp_head.weight)
         nn.init.zeros_(self.mlp_head.bias)
-        print("Initialize head weight successfully!")
+        logging.info("Initialize head weight successfully!")
 
     def train(self, mode=True):
         if mode:

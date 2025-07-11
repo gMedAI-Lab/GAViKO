@@ -15,7 +15,7 @@ import logging
 import os
 from tqdm import tqdm
 import numpy as np
-from focal_loss import FocalLoss
+# from focal_loss import FocalLoss
 from torch.optim.lr_scheduler import OneCycleLR
 
 
@@ -24,7 +24,7 @@ import wandb
 # import paht to sys
 from omegaconf import OmegaConf
 
-from utils.logging import CSVLogger
+from utils.logging import CSVLogger, setup_logging
 
 class DataPreprocessor:
     def __init__(self, config):
@@ -76,6 +76,7 @@ class DataPreprocessor:
 def train(config):
     # Initialize WandB
     os.makedirs(config['utils']['log_dir'], exist_ok=True)
+
     model_name = config['model']['method']
     csv_logger = CSVLogger(log_dir=config['utils']['log_dir'], filename_prefix=f'{model_name}_training_log', 
                        fields=['epoch', 'train_step_acc', 'train_step_loss', 'train_epoch_loss', 
@@ -91,9 +92,9 @@ def train(config):
             dir=config['utils']['log_dir'],
             save_code=True,
         )
-    logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device: {device}")
+    logging.info(f"Phase: {config['utils']['phase']}")
 
     # Preprocess data
     data_preprocessor = DataPreprocessor(config)
@@ -102,68 +103,13 @@ def train(config):
     # Initialize model
 
     if config['model']['method'] == 'gaviko':
-        model = Gaviko(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # heads=config['model']['heads'],
-            # depth= config['model']['depth'],
-            # dim=config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            attn_drop=config['model']['attn_drop'],
-            proj_drop=config['model']['proj_drop'],
-            channels=config['model']['channels'],
-            num_classes=config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-            num_prompts=config['model']['num_prompts'],
-            prompt_latent_dim=config['model']['prompt_latent_dim'],
-            local_dim=config['model']['local_dim'],
-            local_k= tuple(config['model']['local_k']),
-            DHW=tuple(config['model']['DHW']),
-            share_factor=config['model']['share_factor']
-        )
+        model = Gaviko(**config['model'])
 
     elif config['model']['method'] == 'adaptformer':
-        model = AdaptFormer(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # depth=config['model']['depth'],
-            # heads=config['model']['heads'],
-            # dim=config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )# .to(device)
+        model = AdaptFormer(**config['model'])
 
-    elif config['model']['method'] == 'bifit':
-        model = BiFit(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # depth=config['model']['depth'],
-            # heads=config['model']['heads'],
-            # dim=config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )
+    elif config['model']['method'] == 'bitfit':
+        model = BiFit(**config['model'])
         for key, value in model.named_parameters():
             if "bias" in key:
                 value.requires_grad = True
@@ -171,108 +117,24 @@ def train(config):
                 value.requires_grad = True
             else:
                 value.requires_grad = False
+
     elif config['model']['method'] == 'dvpt':
-        model = DynamicVisualPromptTuning(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # depth=config['model']['depth'],
-            # heads= config['model']['heads'],
-            # dim= config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-            num_prompts = config['model']['num_prompts'],
-        )# .to(device)
+        model = DynamicVisualPromptTuning(**config['model'])
+
     elif config['model']['method'] == 'evp':
-        model = ExplicitVisualPrompting(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # depth=config['model']['depth'],
-            # heads=config['model']['heads'],
-            # dim=config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            pool = config['model']['pool'],
-            backbone=config['model']['backbone'],
-            freeze_vit=config['model']['freeze_vit'],
-            scale_factor=config['model']['scale_factor'],
-            input_type=config['model']['input_type'],
-            freq_nums=config['model']['freq_nums'],
-            handcrafted_tune=config['model']['handcrafted_tune'],
-            embedding_tune=config['model']['embedding_tune'],
-        )# .to(device)
+        model = ExplicitVisualPrompting(**config['model'])
 
     elif config['model']['method'] == 'ssf':
-        model = ScalingShiftingFeatures(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # depth=config['model']['depth'],
-            # heads=config['model']['heads'],
-            # dim=config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )
+        model = ScalingShiftingFeatures(**config['model'])
+
     elif config['model']['method'] == 'melo':
-        model = MedicalLoRA(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames=config['model']['frames'],
-            frame_patch_size=config['model']['frame_patch_size'],
-            # depth=config['model']['depth'],
-            # heads=config['model']['heads'],
-            # dim=config['model']['dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )
+        model = MedicalLoRA(**config['model'])
+
     elif config['model']['method'] == 'deep_vpt' or config['model']['method'] == 'shallow_vpt':
-        model = PromptedVisionTransformer(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            # num_layers=config['model']['num_layers'],
-            # num_heads=config['model']['num_heads'],
-            # hidden_dim=config['model']['hidden_dim'],
-            # mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-            num_prompts = config['model']['num_prompts'],
-            prompt_dropout = config['model']['prompt_dropout'],
-            prompt_dim = config['model']['prompt_dim'],
-            deep_prompt=config['model']['deep_prompt']
-        )
+        model = PromptedVisionTransformer(**config['model'])
+
     model.to(device)
-    print(f"Model: {model}")
+    logging.info(f"Model: {model}")
     count_freeze = 0
     count_tuning = 0
     tuning_params = []
@@ -286,16 +148,15 @@ def train(config):
         else:
             count_freeze += 1
             freeze_params.append(name)
-            logging.info(f'Freeze param: {name}')
     logging.info(f'There are {count_tuning} trainable params.')
-    logging.info(f'including: {tuning_params}')
+    # logging.info(f'including: {tuning_params}')
     logging.info(f'There are {count_freeze} freeze params')
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logging.info(f'Total trainable parameters: {total_params}')
-    # alpha = torch.FloatTensor([2.65, 5.39, 3.83, 7.03, 29.67]).to(device)
+    
+    # raise KeyError # Debugging purpose
+
     criterion = FocalLoss(gamma=1.2)
-
-
 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
 
@@ -481,7 +342,7 @@ def train(config):
                 os.makedirs(save_dir, exist_ok=True)
                 backbone = config['model']['backbone'].replace('-', '_') 
                 checkpoint_path = os.path.join(save_dir, f'{model_name}_{backbone}_best_model_epoch{current_epoch}_acc{val_acc:.4f}.pt')
-                print(f"Saving model to {checkpoint_path}")
+                logging.info(f"Saving model to {checkpoint_path}")
                 # print(f"Model state dict: {model.state_dict()}")
                 filtered_state_dict = {
                     k: v for k, v in model.state_dict().items()
@@ -517,8 +378,8 @@ def main():
     parser.add_argument('--config', type=str, default='configs/original_gaviko.yaml',
                         help='Path to the configuration file')
     parser.add_argument('--method', type=str, default='gaviko',
-                        choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt','shallow_vpt'],
-                        help='Model to train: gaviko, adaptformer, bifit, dvpt, evp, ssf, melo, deep_vpt, shallow_vpt')
+                        choices=['gaviko', 'adaptformer', 'bitfit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt','shallow_vpt'],
+                        help='Model to train: gaviko, adaptformer, bitfit, dvpt, evp, ssf, melo, deep_vpt, shallow_vpt')
     parser.add_argument('--results_dir', type=str, default=None,
                         help='Directory to save results')
     args = parser.parse_args()
@@ -530,6 +391,7 @@ def main():
     elif config['model']['method'] == 'shallow_vpt':
         config['model']['deep_prompt'] = False
     config['train']['save_dir'] = args.results_dir  if args.results_dir is not None else config['train']['save_dir']
+    setup_logging(log_dir=config['utils']['log_dir'])
     logging.info(f"Config: {config}")
     train(config)
 

@@ -1,13 +1,14 @@
 {
   'utils':{
-    'log_dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log',
+    'log_dir': './src/log',
+    'phase': 'inference',  # 'train' or 'inference' or 'evaluation'
   },
   'data':{
     'batch_size': 8,
     'num_workers': 8,
-    'data_path': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv',
-    'image_folder': '/mnt/e/workspace/gsoft/part1',
-    'test_data': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv'
+    'data_path': './data/unified_xray_mri_label.csv',
+    'image_folder': './data',
+    'test_data': './data/unified_xray_mri_label.csv'
   },
   'model':{
       'image_size':160,
@@ -30,7 +31,7 @@
       'warmup_steps': 1000,
       'loss_fn': 'focal_loss',
       'accumulation_steps': 1,
-      'save_dir': '/mnt/e/workspace/gsoft/',
+      'save_dir': './src/weights/',
       'save_threshold': 0.0,  # lưu mô hình nếu accuracy > 0.60, 0 for debugging
       'scheduler': {
         'max_lr': 3e-4,  # learning rate cao nhất
@@ -49,6 +50,6 @@
     'name': 'adpatformer_training',
     'log_model': True,
     'save_code': True,
-    'dir': '/mnt/e/workspace/gsoft/log'
+    'dir': './src/log'
   },
 }

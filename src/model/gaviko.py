@@ -6,7 +6,7 @@ import copy
 from torch.nn import functional as F
 import math
 from utils.load_pretrained  import load_pretrain, mapping_vit
-
+import logging
 import model.transformer_vanilla as transformer_vanilla
 
 
@@ -411,6 +411,7 @@ class Gaviko(nn.Module):
                  proj_drop = 0.2,
                  freeze_vit=False,
                  share_factor = 1,
+                 **kwargs
                 ):
         super().__init__()
 
@@ -489,11 +490,11 @@ class Gaviko(nn.Module):
                     p.requires_grad = True
 
         if backbone is not None:
-            print(f'Loading pretrained {backbone}...')
+            logging.info(f'Loading pretrained {backbone}...')
             save_pretrain_dir = './pretrained'
             new_dict = load_pretrain(backbone, self.num_patches, self.conv_proj[0].weight.shape[2],save_pretrain_dir)
             self.load_state_dict(new_dict, strict=False)
-            print(f'Load pretrained {backbone} sucessfully!')
+            logging.info(f'Load pretrained {backbone} sucessfully!')
 
         self.init_weights()
 
@@ -513,7 +514,7 @@ class Gaviko(nn.Module):
             # Positional embeddings với biên độ nhỏ hơn để có gradient ổn định
             pos_std = 0.01 * scale_factor
             model.prompt_positional_embedding.data.normal_(mean=0.0, std=pos_std)
-            print(f"Initializing prompt embeddings have {model.num_prompts} prompts ...")
+            logging.info(f"Initializing prompt embeddings have {model.num_prompts} prompts ...")
 
         # 2. Initialize Awakening_Prompt modules
         for prompt_proj in model.transformer.prompt_projs:
@@ -540,7 +541,7 @@ class Gaviko(nn.Module):
             # Global-Local balancer - Bias to start slightly global-dominated
             nn.init.xavier_uniform_(prompt_proj.gl_balancer[1].weight, gain=1.0)
             nn.init.constant_(prompt_proj.gl_balancer[1].bias, 0.5)  # Bias để bắt đầu với global:0.62, local:0.38
-        print(f"Initializing Prompt Awakener with prompt latent dim {model.prompt_latent_dim}...")
+        logging.info(f"Initializing Prompt Awakener with prompt latent dim {model.prompt_latent_dim}...")
 
         # 3. Initialize LocalSelfAttention layers
         for local_attn in model.transformer.local_attns:
@@ -556,14 +557,14 @@ class Gaviko(nn.Module):
             # Output projection
             nn.init.xavier_uniform_(local_attn.proj_up.weight, gain=0.5*scale_factor)  # Smaller gain for stable training
             nn.init.zeros_(local_attn.proj_down.bias)
-        print(f"Initializing local context Extractor with Local Window size {model.local_k} and Local latent dimension {model.local_dim} ...")
+        logging.info(f"Initializing local context Extractor with Local Window size {model.local_k} and Local latent dimension {model.local_dim} ...")
 
 
         # 4. MLP Head
         nn.init.xavier_uniform_(model.mlp_head.head.weight)
         nn.init.zeros_(model.mlp_head.head.bias)
-        print("Initializing Linear head ...")
-        print("Initialization completed successfully!")
+        logging.info("Initializing Linear head ...")
+        logging.info("Initialization completed successfully!")
 
     def train(self, mode=True):
         if mode:

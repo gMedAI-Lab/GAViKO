@@ -6,6 +6,7 @@ from einops.layers.torch import Rearrange
 from torch.nn import functional as F
 import math
 import warnings
+import logging
 # helpers
 import model.transformer_vanilla as transformer_vanilla
 from utils.load_pretrained  import load_pretrain, mapping_vit
@@ -307,7 +308,7 @@ class ExplicitVisualPrompting(nn.Module):
                  freq_nums=0.25,
                  handcrafted_tune=True,
                  embedding_tune=True,
-
+                **kwargs
                  ):
         super().__init__()
         depth, heads, dim, mlp_dim = mapping_vit(backbone)
@@ -355,11 +356,11 @@ class ExplicitVisualPrompting(nn.Module):
         #################################
 
         if backbone is not None:
-            print(f'Loading pretrained {backbone}...')
+            logging.info(f'Loading pretrained {backbone}...')
             save_pretrain_dir = './pretrained'
             new_dict = load_pretrain(backbone, self.num_patches, self.conv_proj.proj.weight.shape[2],save_pretrain_dir)
             self.load_state_dict(new_dict, strict=False)
-            print(f'Load pretrained {backbone} sucessfully!')
+            logging.info(f'Load pretrained {backbone} sucessfully!')
 
         self.freeze_vit = freeze_vit
         if self.freeze_vit:
@@ -372,7 +373,7 @@ class ExplicitVisualPrompting(nn.Module):
     def init_head_weights(self):
         nn.init.xavier_uniform_(self.mlp_head.weight)
         nn.init.zeros_(self.mlp_head.bias)
-        print("Initialize head weight successfully!")
+        logging.info("Initialize head weight successfully!")
 
     def train(self, mode=True):
         if mode:

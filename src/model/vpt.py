@@ -4,6 +4,7 @@ from torch import nn
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from torch.nn import functional as F
+import logging
 # helpers
 import model.transformer_vanilla as transformer_vanilla
 
@@ -132,11 +133,11 @@ class VisionTransformer(nn.Module):
         self.mlp_head = nn.Linear(dim, num_classes)
 
         if backbone is not None:
-            print(f'Loading pretrained {backbone}...')
+            logging.info(f'Loading pretrained {backbone}...')
             save_pretrain_dir = './pretrained'
             new_dict = load_pretrain(backbone, self.num_patches, self.conv_proj[0].weight.shape[2],save_pretrain_dir)
             self.load_state_dict(new_dict, strict=False)
-            print(f'Load pretrained {backbone} sucessfully!')
+            logging.info(f'Load pretrained {backbone} sucessfully!')
 
 
 
@@ -179,6 +180,7 @@ class PromptedVisionTransformer(nn.Module):
                  prompt_dim = 64,
                  num_prompts = 8,
                  deep_prompt = True,
+                 **kwargs
                  ):
         super().__init__()
         num_layers, num_heads, hidden_dim, mlp_dim = mapping_vit(backbone)
@@ -226,7 +228,7 @@ class PromptedVisionTransformer(nn.Module):
                                      backbone=backbone)
         self.freeze_vit = freeze_vit
 
-        # self.init_head_weights()
+        self.init_head_weights()
         self.init_promptproj_weights()
 
         if self.freeze_vit:
@@ -237,12 +239,12 @@ class PromptedVisionTransformer(nn.Module):
     def init_head_weights(self):
         nn.init.xavier_uniform_(self.vision_transformer.mlp_head.weight)
         nn.init.zeros_(self.vision_transformer.mlp_head.bias)
-        print("Initialize head weight successfully!")
+        logging.info("Initialize head weight successfully!")
 
     def init_promptproj_weights(self):
         nn.init.xavier_uniform_(self.prompt_proj.weight)
         nn.init.zeros_(self.prompt_proj.bias)
-        print("Initialize prompt projector successfully!")
+        logging.info("Initialize prompt projector successfully!")
 
     def train(self, mode=True):
         if mode:
