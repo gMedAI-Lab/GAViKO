@@ -1,13 +1,14 @@
 {
   'utils':{
-    'log_dir': '/mnt/e/workspace/gsoft/GAViKO_origin/src/log',
+    'log_dir': './src/log',
+    'phase': 'train',  # 'train' or 'inference' or 'evaluation'
   },
   'data':{
     'batch_size': 8,
     'num_workers': 8,
-    'data_path': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv',
-    'image_folder': '/mnt/e/workspace/gsoft/part1',
-    'test_data': '/mnt/e/workspace/gsoft/unified_xray_mri_label_processed.csv'
+    'data_path': './data/unified_xray_mri_label.csv', # path to the CSV file containing image paths and labels
+    'image_folder': './data',
+    'test_data': './data/unified_xray_mri_label.csv' # path to the CSV file containing test image paths and labels
   },
   'model':{
       'image_size':160,
@@ -33,7 +34,7 @@
       'local_dim':20,
       'local_k':[6,6,6],
       'DHW':[10,10,10],
-      'share_factor':2, # he so K, K factor
+      'share_factor':1, # he so K, K factor
   },
   'train':{
       'num_epochs': 1, #debugging
@@ -42,7 +43,7 @@
       'warmup_steps': 1000,
       'loss_fn': 'focal_loss',
       'accumulation_steps': 1,
-      'save_dir': '/mnt/e/workspace/gsoft/',
+      'save_dir': './src/weights/',
       'save_threshold': 0.0,  # lưu mô hình nếu accuracy > 0.60, 0 for debugging
       'scheduler': {
         'max_lr': 3e-4,  # learning rate cao nhất
@@ -61,6 +62,6 @@
     'name': 'gaviko_training',
     'log_model': True,
     'save_code': True,
-    'dir': '/mnt/e/workspace/gsoft/log'
+    'dir': './src/log'
   },
 }

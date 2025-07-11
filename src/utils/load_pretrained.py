@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 import timm
 import os
+import logging
 
 def load_pretrain( backbone,num_patches,depth_dim,save_dir):
 
@@ -19,14 +20,14 @@ def load_pretrain( backbone,num_patches,depth_dim,save_dir):
     elif backbone.lower() == 'vit-l16':
         backbone_type = 'vit_large_patch16_224_in21k'
     else:
-        print('Warning: The model initizalizes without pretrained knowledge!')
+        logging.info('Warning: The model initizalizes without pretrained knowledge!')
     model = timm.create_model(backbone_type, pretrained=True)
 
     # Lưu state_dict
     save_path = os.path.join(save_dir, backbone_type)
     torch.save(model.state_dict(), save_path)
 
-    print(f"Pretrained {backbone} downloaded successfully")
+    logging.info(f"Pretrained {backbone} downloaded successfully")
     jax_dict = torch.load(save_path, map_location='cpu')
     new_dict = {}
 

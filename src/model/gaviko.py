@@ -1,65 +1,16 @@
 import torch
 from torch import nn
-from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
+from einops import repeat
 import copy
 from torch.nn import functional as F
 import math
 from utils.load_pretrained  import load_pretrain, mapping_vit
-
-import model.transformer_vanilla as transformer_vanilla
+import logging
+import model.vision_transformer as vision_transformer
 
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
-
-class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout = 0.):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
-        )
-    def forward(self, x):
-        return self.net(x)
-
-class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
-        super().__init__()
-        inner_dim = dim_head *  heads
-        project_out = not (heads == 1 and dim_head == dim)
-
-        self.heads = heads
-        self.scale = dim_head ** -0.5
-
-        self.norm = nn.LayerNorm(dim)
-        self.attend = nn.Softmax(dim = -1)
-        self.dropout = nn.Dropout(dropout)
-
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
-
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        ) if project_out else nn.Identity()
-
-    def forward(self, x):
-        x = self.norm(x)
-        qkv = self.to_qkv(x).chunk(3, dim = -1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
-
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-
-        attn = self.attend(dots)
-        attn = self.dropout(attn)
-
-        out = torch.matmul(attn, v)
-        out = rearrange(out, 'b h n d -> b n (h d)')
-        return self.to_out(out)
 
 class QuickGELU(nn.Module):
     def forward(self, x: torch.Tensor):
@@ -215,23 +166,10 @@ class Awakening_Prompt(nn.Module): # GPA
         # Determine global-local balance from CLS token
         global_weight = self.gl_balancer.forward(cls_latent)  # [B, 1, 1]
 
-
         # GLOBAL PATH: Cross-attention between prompts and global image tokens
         global_context = self.global_attention.forward(global_img_latent, prompts_latent)  # [B, num_prompts, latent_dim]
         # LOCAL PATH: Cross-attention between prompts and local context
         local_context = self.local_attention.forward(local_latent, prompts_latent)  # [B, num_prompts, latent_dim]
-
-        # # GLOBAL PATH: Cross-attention between prompts and global image tokens
-        # global_q = self.global_query(prompts_latent)  # [B, num_prompts, latent_dim]
-        # global_attn = torch.einsum('bpd,bnd->bpn', global_q, global_img_latent) * self.scale
-        # global_attn = self.attend(global_attn)
-        # global_context = torch.einsum('bpn,bnd->bpd', global_attn, global_img_latent)
-
-        # # LOCAL PATH: Cross-attention between prompts and local context
-        # local_q = self.local_query(prompts_latent)  # [B, num_prompts, latent_dim]
-        # local_attn = torch.einsum('bpd,bnd->bpn', local_q, local_latent) * self.scale
-        # local_attn = self.attend(local_attn)
-        # local_context = torch.einsum('bpn,bnd->bpd', local_attn, local_latent)
 
         # Dynamic fusion of global and local context
         fused_prompts = global_weight * global_context + (1 - global_weight) * local_context
@@ -247,7 +185,6 @@ class Awakening_Prompt(nn.Module): # GPA
         ], dim=1)
 
         return self.proj_up(combined_latent)
-
 
 class LocalSelfAttention(nn.Module):
     def __init__(self,
@@ -340,12 +277,12 @@ class Transformer(nn.Module):
         ])
 
         self.attns = nn.ModuleList([
-            transformer_vanilla.Attention(dim, heads, dim_head, dropout)
+            vision_transformer.Attention(dim, heads, dim_head, dropout)
             for _ in range(depth)
         ])
 
         self.mlps = nn.ModuleList([
-            transformer_vanilla.FeedForward(dim, mlp_dim, dropout)
+            vision_transformer.FeedForward(dim, mlp_dim, dropout)
             for _ in range(depth)
         ])
 
@@ -411,6 +348,7 @@ class Gaviko(nn.Module):
                  proj_drop = 0.2,
                  freeze_vit=False,
                  share_factor = 1,
+                 **kwargs
                 ):
         super().__init__()
 
@@ -489,11 +427,11 @@ class Gaviko(nn.Module):
                     p.requires_grad = True
 
         if backbone is not None:
-            print(f'Loading pretrained {backbone}...')
+            logging.info(f'Loading pretrained {backbone}...')
             save_pretrain_dir = './pretrained'
             new_dict = load_pretrain(backbone, self.num_patches, self.conv_proj[0].weight.shape[2],save_pretrain_dir)
             self.load_state_dict(new_dict, strict=False)
-            print(f'Load pretrained {backbone} sucessfully!')
+            logging.info(f'Load pretrained {backbone} sucessfully!')
 
         self.init_weights()
 
@@ -513,7 +451,7 @@ class Gaviko(nn.Module):
             # Positional embeddings với biên độ nhỏ hơn để có gradient ổn định
             pos_std = 0.01 * scale_factor
             model.prompt_positional_embedding.data.normal_(mean=0.0, std=pos_std)
-            print(f"Initializing prompt embeddings have {model.num_prompts} prompts ...")
+            logging.info(f"Initializing prompt embeddings have {model.num_prompts} prompts ...")
 
         # 2. Initialize Awakening_Prompt modules
         for prompt_proj in model.transformer.prompt_projs:
@@ -540,7 +478,7 @@ class Gaviko(nn.Module):
             # Global-Local balancer - Bias to start slightly global-dominated
             nn.init.xavier_uniform_(prompt_proj.gl_balancer[1].weight, gain=1.0)
             nn.init.constant_(prompt_proj.gl_balancer[1].bias, 0.5)  # Bias để bắt đầu với global:0.62, local:0.38
-        print(f"Initializing Prompt Awakener with prompt latent dim {model.prompt_latent_dim}...")
+        logging.info(f"Initializing Prompt Awakener with prompt latent dim {model.prompt_latent_dim}...")
 
         # 3. Initialize LocalSelfAttention layers
         for local_attn in model.transformer.local_attns:
@@ -556,14 +494,14 @@ class Gaviko(nn.Module):
             # Output projection
             nn.init.xavier_uniform_(local_attn.proj_up.weight, gain=0.5*scale_factor)  # Smaller gain for stable training
             nn.init.zeros_(local_attn.proj_down.bias)
-        print(f"Initializing local context Extractor with Local Window size {model.local_k} and Local latent dimension {model.local_dim} ...")
+        logging.info(f"Initializing local context Extractor with Local Window size {model.local_k} and Local latent dimension {model.local_dim} ...")
 
 
         # 4. MLP Head
         nn.init.xavier_uniform_(model.mlp_head.head.weight)
         nn.init.zeros_(model.mlp_head.head.bias)
-        print("Initializing Linear head ...")
-        print("Initialization completed successfully!")
+        logging.info("Initializing Linear head ...")
+        logging.info("Initialization completed successfully!")
 
     def train(self, mode=True):
         if mode:

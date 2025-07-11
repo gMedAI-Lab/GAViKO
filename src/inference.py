@@ -3,11 +3,11 @@ import pandas as pd
 from data.dataset import CustomDataset,CustomDatasetPrediction
 from torch.utils.data import DataLoader
 from model.adaptformer import AdaptFormer
-from model.bifit import BiFit
+from model.vision_transformer import VisionTransformer
 from model.dvpt import DynamicVisualPromptTuning
 from model.evp import ExplicitVisualPrompting
 from model.ssf import ScalingShiftingFeatures
-from model.melo import MedicalLoRA
+from model.melo import MeLO
 from model.vpt import PromptedVisionTransformer
 from model.gaviko import Gaviko
 import torch
@@ -16,13 +16,15 @@ import os
 from tqdm import tqdm
 import numpy as np
 from utils.load_pretrained import load_vanilla_pretrain_with_adapters
+from utils.logging import setup_logging
 
 def inference(config):
     os.makedirs(config['utils']['log_dir'], exist_ok=True)
     time_stamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
-    logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
+    # logging.basicConfig(filename=os.path.join(config['utils']['log_dir'], f'log_{time_stamp}.txt'), level=logging.INFO, format='%(asctime)s - %(message)s')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
+    logging.info(f"Using device: {device}")
+    logging.info(f"Phase: {config['utils']['phase']}")
 
     test_transforms = tio.Compose([
         tio.RescaleIntensity(out_min_max=(0,1)),
@@ -34,68 +36,25 @@ def inference(config):
     test_loader = DataLoader(test_ds, batch_size=config['data']['batch_size'], shuffle=False, num_workers=config['data']['num_workers'], pin_memory=True)
 
     if config['model']['method'] == 'gaviko':
-        model = Gaviko(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads=config['model']['heads'],
-            #dim=config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            attn_drop=config['model']['attn_drop'],
-            proj_drop=config['model']['proj_drop'],
-            channels=config['model']['channels'],
-            num_classes=config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-            num_prompts=config['model']['num_prompts'],
-            prompt_latent_dim=config['model']['prompt_latent_dim'],
-            local_dim=config['model']['local_dim'],
-            local_k= tuple(config['model']['local_k']),
-            DHW=tuple(config['model']['DHW']),
-            share_factor=config['model']['share_factor']
-        )
+        model = Gaviko(**config['model'])
+
+    elif config['model']['method'] == 'linear':
+        model = VisionTransformer(**config['model'])
+        # Freeze all parameters except for weights and head
+        for key, value in model.named_parameters():
+            if "head" in key:
+                value.requires_grad = True
+            else:
+                value.requires_grad = False
+    
+    elif config['model']['method'] == 'fft':
+        model = VisionTransformer(**config['model'])
 
     elif config['model']['method'] == 'adaptformer':
-        model = AdaptFormer(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads=config['model']['heads'],
-            #dim=config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )# .to(device)
+        model = AdaptFormer(**config['model'])
 
-    elif config['model']['method'] == 'bifit':
-        model = BiFit(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads=config['model']['heads'],
-            #dim=config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )
+    elif config['model']['method'] == 'bitfit':
+        model = VisionTransformer(**config['model'])
         for key, value in model.named_parameters():
             if "bias" in key:
                 value.requires_grad = True
@@ -103,127 +62,40 @@ def inference(config):
                 value.requires_grad = True
             else:
                 value.requires_grad = False
+
     elif config['model']['method'] == 'dvpt':
-        model = DynamicVisualPromptTuning(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads= config['model']['heads'],
-            #dim= config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-            num_prompts = config['model']['num_prompts'],
-        )# .to(device)
-        print(f"Model type: {config['model']['method']}")
-        # print num_prompts
-        print(f"Number of prompts: {config['model']['num_prompts']}")
-        print(model)
+        model = DynamicVisualPromptTuning(**config['model'])
+
     elif config['model']['method'] == 'evp':
-        model = ExplicitVisualPrompting(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads=config['model']['heads'],
-            #dim=config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            pool = config['model']['pool'],
-            backbone=config['model']['backbone'],
-            freeze_vit=config['model']['freeze_vit'],
-            scale_factor=config['model']['scale_factor'],
-            input_type=config['model']['input_type'],
-            freq_nums=config['model']['freq_nums'],
-            handcrafted_tune=config['model']['handcrafted_tune'],
-            embedding_tune=config['model']['embedding_tune'],
-        )# .to(device)
+        model = ExplicitVisualPrompting(**config['model'])
 
     elif config['model']['method'] == 'ssf':
-        model = ScalingShiftingFeatures(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads=config['model']['heads'],
-            #dim=config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )
+        model = ScalingShiftingFeatures(**config['model'])
+
     elif config['model']['method'] == 'melo':
-        model = MedicalLoRA(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames=config['model']['frames'],
-            frame_patch_size=config['model']['frame_patch_size'],
-            #depth=config['model']['depth'],
-            #heads=config['model']['heads'],
-            #dim=config['model']['dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-        )
+        vit_model = VisionTransformer(**config['model'])
+        model = MeLO(vit=vit_model, **config['model'])
+
     elif config['model']['method'] == 'deep_vpt' or config['model']['method'] == 'shallow_vpt':
-        model = PromptedVisionTransformer(
-            image_size=config['model']['image_size'],
-            image_patch_size=config['model']['image_patch_size'],
-            frames = config['model']['frames'],
-            frame_patch_size = config['model']['frame_patch_size'],
-            #num_layers=config['model']['num_layers'],
-            #num_heads=config['model']['num_heads'],
-            #hidden_dim=config['model']['hidden_dim'],
-            #mlp_dim=config['model']['mlp_dim'],
-            dropout=config['model']['dropout'],
-            emb_dropout=config['model']['emb_dropout'],
-            channels = config['model']['channels'],
-            num_classes = config['model']['num_classes'],
-            freeze_vit = config['model']['freeze_vit'],
-            pool = config['model']['pool'],
-            backbone = config['model']['backbone'],
-            num_prompts = config['model']['num_prompts'],
-            prompt_dropout = config['model']['prompt_dropout'],
-            prompt_dim = config['model']['prompt_dim'],
-            deep_prompt=config['model']['deep_prompt']
-        )
+        model = PromptedVisionTransformer(**config['model'])
+
     model.to(device)
     # Load trained weights
-    print(f"Model type: {config['model']['method']}")
-    print(model)
+    logging.info(f"Model type: {config['model']['method']}")
+
     if config['utils']['checkpoint']:
         checkpoint_path = config['utils']['checkpoint']
         if os.path.exists(checkpoint_path):
-            print(f"Loading model weights from {checkpoint_path}")
+            logging.info(f"Loading model weights from {checkpoint_path}")
             model_dict = load_vanilla_pretrain_with_adapters(config['model']['backbone'],config,checkpoint_path)
             model.load_state_dict(model_dict, strict=False)
             
         else:
             raise FileNotFoundError(f"Model weights not found at {checkpoint_path}. Please check the path.")
     else:
-        print(f"Model path is not provided. {config['model']['method']} weights are initialized randomly.")
+        logging.info(f"Model path is not provided. {config['model']['method']} weights are initialized randomly.")
     
-    print(model)
+    logging.info(model)
 
     model.eval()
 
@@ -240,7 +112,7 @@ def inference(config):
 
             all_outputs.append(predicted_classes)
     all_outputs = np.concatenate(all_outputs, axis=0)  
-    print(f"Final outputs shape: {all_outputs.shape}")
+    logging.info(f"Final outputs shape: {all_outputs.shape}")
 
     test_df['outputs'] = all_outputs.tolist()
 
@@ -262,9 +134,9 @@ def inference(config):
         if not os.path.exists(output_csv_path):
             break
         version += 1
-    print(f"Saving results to {output_csv_path}")
+    logging.info(f"Saving results to {output_csv_path}")
     output_df.to_csv(output_csv_path, index=False)
-    print(f"Results saved to {output_csv_path}")
+    logging.info(f"Results saved to {output_csv_path}")
 
 def generate_csv(image_folder):
     """
@@ -294,7 +166,7 @@ if __name__ == "__main__":
                         help='Directory to save inference results')
     parser.add_argument('--checkpoint', type=str, required=False,
                         help='Path to the trained model weights')
-    parser.add_argument('--method', type=str, default='gaviko', choices=['gaviko', 'adaptformer', 'bifit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
+    parser.add_argument('--method', type=str, default='gaviko', choices=['gaviko', 'fft', 'linear', 'adaptformer', 'bitfit', 'dvpt', 'evp', 'ssf', 'melo', 'deep_vpt', 'shallow_vpt'],
                         help='Type of model to use (default: gaviko)')
     args = parser.parse_args()
 
@@ -308,5 +180,6 @@ if __name__ == "__main__":
     config['utils']['results_dir'] = args.results_dir if args.results_dir is not None else config['utils']['results_dir']
     config['utils']['checkpoint'] = args.checkpoint
     os.makedirs(config['utils']['results_dir'], exist_ok=True)
+    setup_logging(log_dir=config['utils']['results_dir'])
     logging.info(f"Config: {config}")
     inference(config)
