@@ -1,3 +1,8 @@
+# This implementation is adapted from:
+# https://github.com/ShoufaChen/AdaptFormer/blob/main/models/adapter.py
+# Original author: Shoufa Chen
+# License: MIT
+
 import torch
 from torch import nn
 
