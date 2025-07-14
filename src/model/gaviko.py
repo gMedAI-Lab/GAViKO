@@ -6,7 +6,7 @@ from torch.nn import functional as F
 import math
 from utils.load_pretrained  import load_pretrain, mapping_vit
 import logging
-import model.vision_transformer as vision_transformer
+from model.vision_transformer import Attention, FeedForward
 
 
 def pair(t):
@@ -277,12 +277,12 @@ class Transformer(nn.Module):
         ])
 
         self.attns = nn.ModuleList([
-            vision_transformer.Attention(dim, heads, dim_head, dropout)
+            Attention(dim, heads, dim_head, dropout)
             for _ in range(depth)
         ])
 
         self.mlps = nn.ModuleList([
-            vision_transformer.FeedForward(dim, mlp_dim, dropout)
+            FeedForward(dim, mlp_dim, dropout)
             for _ in range(depth)
         ])
 

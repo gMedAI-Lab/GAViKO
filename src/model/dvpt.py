@@ -10,7 +10,7 @@ from einops import repeat
 import math
 import logging
 # helpers
-import model.vision_transformer as vision_transformer
+from model.vision_transformer import Attention, FeedForward
 from utils.load_pretrained  import load_pretrain , mapping_vit
 
 def pair(t):
@@ -51,8 +51,8 @@ class ResidualAttentionBlock(nn.Module):
     def __init__(self, dim, heads, dim_head, mlp_dim, num_prompts, dropout):
         super().__init__()
 
-        self.attn = vision_transformer.Attention(dim, heads, dim_head, dropout)
-        self.mlp = vision_transformer.FeedForward(dim, mlp_dim, dropout)
+        self.attn = Attention(dim, heads, dim_head, dropout)
+        self.mlp = FeedForward(dim, mlp_dim, dropout)
         self.prompt_proj = share_MLP(dim, num_prompts)
 
 
