@@ -5,7 +5,7 @@
 import torch
 from torch import nn
 
-from einops import rearrange, repeat
+from einops import repeat
 import logging
 # helpers
 from model.vision_transformer import VisionTransformer
