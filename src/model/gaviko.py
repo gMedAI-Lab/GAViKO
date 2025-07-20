@@ -214,14 +214,14 @@ class LocalSelfAttention(nn.Module):
             N = D * H * W  # 1000 (Image tokens)
 
             # Init mask Image Tokens (N, N)
-            mask = torch.ones((N, D + dk - 1, H + hk - 1, W + wk - 1), dtype=torch.float32)
+            mask = torch.ones((N, D + dk - 1, H + hk - 1, W + wk - 1), dtype=torch.float16)
             for d in range(D):
                 for h in range(H):
                     for w in range(W):
                         mask[d * H * W + h * W + w, d:d + dk, h:h + hk, w:w + wk] = 0.0
 
             mask_pytorch = mask[:, dk // 2:D + dk // 2, hk // 2:H + hk // 2, wk // 2:W + wk // 2].reshape(N, -1)
-            mask_inf = torch.full((N, N), float('-inf'), dtype=torch.float32)
+            mask_inf = torch.full((N, N), float('-inf'), dtype=torch.float16)
             local_mask = torch.where(mask_pytorch < 1, mask_pytorch, mask_inf)  # (N, N)
             self.mask = local_mask.unsqueeze(0)  # (1, N, N)
 

@@ -51,6 +51,10 @@
         'three_phase': False  # don't use 3 phases (only 2 phases: up-and-down)
       },
       'patience': 15,  # number of epochs with no improvement before stopping training
+      'deepspeed': {
+        'enabled': False,  # Enable DeepSpeed
+        'config': '/mnt/e/workspace/gsoft/GAViKO_origin/src/configs/deepspeed.yaml'  # Path to DeepSpeed config file
+      }
   },
   'wandb':{
     'enable': False,

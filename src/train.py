@@ -18,6 +18,10 @@ import numpy as np
 from torch.optim.lr_scheduler import OneCycleLR
 from torch.nn import CrossEntropyLoss
 from losses.focal_loss import FocalLoss
+import deepspeed
+from deepspeed import DeepSpeedEngine
+
+
 
 import wandb
 # import paht to sys
@@ -169,21 +173,28 @@ def train(config):
 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
 
-    optimizer = torch.optim.Adam(trainable_params, lr=config['train']['lr'])
+    if not config['train']['deepspeed']['enabled']:
+        optimizer = torch.optim.Adam(
+            trainable_params,
+            lr=config['train']['lr'],
+        )
+    logging.info(f"Number of trainable params: {len(list(trainable_params))}")
+    logging.info(f"Trainable params type: {type(trainable_params)}")
 
     steps_per_epoch = len(train_loader)
     num_epochs = config['train']['num_epochs']
     total_steps = steps_per_epoch * num_epochs
-    scheduler = OneCycleLR(
-        optimizer,
-        max_lr=config['train']['scheduler']['max_lr'],  # learning rate cao nhất
-        total_steps=total_steps,  # tổng số bước huấn luyện
-        pct_start=config['train']['scheduler']['pct_start'],  # % số bước dành cho giai đoạn tăng lr (warmup)
-        div_factor=config['train']['scheduler']['div_factor'],  # lr_start = max_lr / div_factor
-        final_div_factor=config['train']['scheduler']['final_div_factor'],  # lr_final = lr_start / final_div_factor
-        anneal_strategy=config['train']['scheduler']['anneal_strategy'],  # sử dụng cosine annealing
-        three_phase=config['train']['scheduler']['three_phase']  # không dùng 3 giai đoạn (chỉ dùng 2: lên-xuống)
-    )
+    if not config['train']['deepspeed']['enabled']:
+        scheduler = OneCycleLR(
+            optimizer,
+            max_lr=config['train']['scheduler']['max_lr'],  # learning rate cao nhất
+            total_steps=total_steps,  # tổng số bước huấn luyện
+            pct_start=config['train']['scheduler']['pct_start'],  # % số bước dành cho giai đoạn tăng lr (warmup)
+            div_factor=config['train']['scheduler']['div_factor'],  # lr_start = max_lr / div_factor
+            final_div_factor=config['train']['scheduler']['final_div_factor'],  # lr_final = lr_start / final_div_factor
+            anneal_strategy=config['train']['scheduler']['anneal_strategy'],  # sử dụng cosine annealing
+            three_phase=config['train']['scheduler']['three_phase']  # không dùng 3 giai đoạn (chỉ dùng 2: lên-xuống)
+        )
 
     val_acc_max =0
 
@@ -208,24 +219,60 @@ def train(config):
     val_step = 0
 
     best_epoch = 0
+    # deepspeed_config = config.get('deepspeed', None)
+    if config['train']['deepspeed']['enabled']:
+        engine, _, _, _ = deepspeed.initialize(
+            model=model,
+            config=config['train']['deepspeed']['config'],
+            model_parameters=trainable_params 
+            # optimizer=optimizer,
+        )
+        del model
+        torch.cuda.empty_cache()
+        import gc
+        gc.collect()
+        logging.info("DeepSpeed initialized.")
     for epoch in range(num_epochs):
         num_acc = 0.0
         running_loss = 0.0
-        model.train()
+        if not config['train']['deepspeed']['enabled']:
+            model.train()
+        else:
+            engine.train()
         index = 0
+    
         for inputs, labels in tqdm(train_loader):
-            optimizer.zero_grad()
+            if config['train']['deepspeed']['enabled']:
+                # cast float16 if enabled
+                inputs = inputs.half()
+                inputs = inputs.to(engine.device)
+                labels = labels.to(engine.device)
 
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+                
+                outputs = engine(inputs)
+                m = torch.nn.Softmax(dim=-1)
+                loss = criterion(m(outputs), labels)
+                
+                engine.backward(loss)
+                engine.step()
+                current_lr = engine.get_lr()[0] if hasattr(engine, 'get_lr') else 3e-4
+                
+            else:
+                inputs = inputs.half()
+                optimizer.zero_grad()
 
-            outputs = model(inputs)
-            m = torch.nn.Softmax(dim=-1)
-            loss = criterion(m(outputs), labels)
+                inputs = inputs.to(device)
+                labels = labels.to(device)
 
-            loss.backward()
-            optimizer.step()
-            scheduler.step()
+                outputs = model(inputs)
+                m = torch.nn.Softmax(dim=-1)
+                loss = criterion(m(outputs), labels)
+
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+                current_lr = model.get_lr()[0] if hasattr(model, 'get_lr') else 3e-4
+                
             # scheduler.step(epoch + i / iters)
 
             running_loss += loss.item() * inputs.size(0)
@@ -247,7 +294,7 @@ def train(config):
                 'val_step_loss': val_step_loss,
                 'val_epoch_acc': val_acc,
                 'val_epoch_loss': val_loss,
-                'lr': optimizer.param_groups[0]['lr'],
+                'lr': current_lr,
                 'best_epoch': best_epoch,
                 'best_val_acc': val_acc_max,
                 'time_stamp': time_stamp,
@@ -263,7 +310,7 @@ def train(config):
                     'epoch': current_epoch,
                     'train_step': train_step,
                 }, step=train_step)
-        current_lr = optimizer.param_groups[0]['lr']
+        # current_lr = optimizer.param_groups[0]['lr']
         logging.info(f"Epoch {epoch}, Current LR: {current_lr:.6f}")
 
         train_loss = running_loss / len(train_loader)
@@ -279,16 +326,32 @@ def train(config):
         final_attention_weights = []
         final_slices = []
 
-        model.eval()
+        if config['train']['deepspeed']['enabled']:
+            engine.eval()
+        else:
+            model.eval()
         with torch.no_grad():
             index_val = 0
             for inputs, labels in tqdm(val_loader):
-                inputs  = inputs.to(device)
-                labels  = labels.to(device)
+                if config['train']['deepspeed']['enabled']:
+                    inputs = inputs.half()
+                    inputs = inputs.to(engine.device)
+                    labels = labels.to(engine.device)
 
-                outputs = model(inputs)
-                m = torch.nn.Softmax(dim=-1)
-                loss = criterion(m(outputs), labels)
+                    outputs = engine(inputs)
+                    m = torch.nn.Softmax(dim=-1)
+                    loss = criterion(m(outputs), labels)
+                    current_lr = engine.get_lr()[0] if hasattr(engine, 'get_lr') else 3e-4
+
+                else:
+                    inputs = inputs.half()
+                    inputs  = inputs.to(device)
+                    labels  = labels.to(device)
+
+                    outputs = model(inputs)
+                    m = torch.nn.Softmax(dim=-1)
+                    loss = criterion(m(outputs), labels)
+                    current_lr = model.get_lr()[0] if hasattr(model, 'get_lr') else 3e-4
 
                 running_val_loss += loss.item() * inputs.size(0)
                 num_val_acc += (torch.argmax(outputs, dim = 1) == labels).sum().item()
@@ -307,7 +370,7 @@ def train(config):
                     'val_step_loss': val_step_loss,
                     'val_epoch_acc': val_acc,
                     'val_epoch_loss': val_loss,
-                    'lr': optimizer.param_groups[0]['lr'],
+                    'lr': current_lr,
                     'best_epoch': best_epoch,
                     'best_val_acc': val_acc_max,
                     'time_stamp': time_stamp,
@@ -353,11 +416,17 @@ def train(config):
                 checkpoint_path = os.path.join(save_dir, f'{model_name}_{backbone}_best_model_epoch{current_epoch}_acc{val_acc:.4f}.pt')
                 logging.info(f"Saving model to {checkpoint_path}")
                 # print(f"Model state dict: {model.state_dict()}")
-                filtered_state_dict = {
-                    k: v for k, v in model.state_dict().items()
-                    if k in tuning_params
-                }
-                    
+                if config['train']['deepspeed']['enabled']:
+                    filtered_state_dict = {
+                        k: v for k, v in engine.state_dict().items()
+                        if k in tuning_params
+                    }
+                else:
+                    filtered_state_dict = {
+                        k: v for k, v in model.state_dict().items()
+                        if k in tuning_params
+                    }
+                # Save the filtered state dict 
                 torch.save(filtered_state_dict, checkpoint_path)
 
                 logging.info(f"Model saved to {checkpoint_path}")
