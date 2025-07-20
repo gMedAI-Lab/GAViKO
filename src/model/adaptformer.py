@@ -11,7 +11,7 @@ import math
 import logging
 
 # helpers
-import model.vision_transformer as vision_transformer
+from model.vision_transformer import Attention, FeedForward
 from utils.load_pretrained  import load_pretrain, mapping_vit
 
 def pair(t):
@@ -85,9 +85,9 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                vision_transformer.Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
+                Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout,),
                 Adapter(dim),
-                vision_transformer.FeedForward(dim, mlp_dim, dropout = dropout)
+                FeedForward(dim, mlp_dim, dropout = dropout)
             ]))
 
     def forward(self, x):
