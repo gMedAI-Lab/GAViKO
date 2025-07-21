@@ -1,29 +1,17 @@
 {
-  # "train_batch_size": 8,
-  # "gradient_accumulation_steps": 4,
-  train_micro_batch_size_per_gpu: 1,
+  "train_batch_size": 32,
+  "gradient_accumulation_steps": 4,
+  "train_micro_batch_size_per_gpu": 8
   "zero_optimization": {
     "stage": 2,
-    "allgather_partitions": true,
-    "reduce_scatter": true,
-    "contiguous_gradients": true,
-    "offload_param": {
-      "device": "cpu",
-      "pin_memory": true,
-      "buffer_count": 5,
-      "buffer_size": 1e8,
-      "max_in_cpu": 1e9
-
-    },
     "offload_optimizer": {
       "device": "cpu",
-      "pin_memory": true,
-      # "ratio": 0.9,
-      "buffer_count": 5,
-      "fast_init": false
-      
+      "pin_memory": true
     },
-
+    "offload_param": {
+      "device": "cpu",
+      "pin_memory": true
+    }
   },
   "optimizer": {
     "type": "Adam",
@@ -43,7 +31,7 @@
     }
   },
   "fp16": {
-    "enabled": false,
+    "enabled": true,
     "loss_scale": 0,
     "initial_scale_power": 16,
     "loss_scale_window": 1000,

@@ -4,7 +4,7 @@
     'phase': 'train',  # 'train' or 'inference' or 'evaluation'
   },
   'data':{
-    'batch_size': 8,
+    'batch_size': 4,
     'num_workers': 8,
     'data_path': '/mnt/e/workspace/gsoft/GAViKO_origin/dataset/unified_xray_mri_label_processed.csv', # path to the CSV file containing image paths and labels
     'image_folder': '/mnt/e/workspace/gsoft/GAViKO_origin/dataset/part1',
@@ -34,11 +34,11 @@
       'local_dim':20,
       'local_k':[6,6,6],
       'DHW':[10,10,10],
+      'fp16': True,  # Enable mixed precision training
       'share_factor':1, # he so K, K factor
-      'fp16': True,  # Use float16 precision if True
   },
   'train':{
-      'num_epochs': 1, #debugging
+      'num_epochs': 30, #debugging
       'lr': 1e-4,
       'weight_decay': 1e-4,
       'warmup_steps': 1000,
@@ -60,7 +60,9 @@
       'deepspeed': {
         'enabled': False,  # Enable DeepSpeed
         'config': '/mnt/e/workspace/gsoft/GAViKO_origin/src/configs/deepspeed.yaml'  # Path to DeepSpeed config file
-      }
+      },
+      'memory_verbose': True,  # Enable memory verbose for debugging
+      'flops_calculation': True,  # Enable FLOPs calculation for validation
   },
   'wandb':{
     'enable': False,

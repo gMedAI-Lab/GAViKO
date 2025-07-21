@@ -10,6 +10,7 @@ from model.evp import ExplicitVisualPrompting
 from model.ssf import ScalingShiftingFeatures
 from model.melo import MeLO
 from model.vpt import PromptedVisionTransformer
+from utils.logging import MemoryUsageLogger, analyze_model_computation
 import torch
 import logging
 import os
@@ -20,12 +21,12 @@ from torch.nn import CrossEntropyLoss
 from losses.focal_loss import FocalLoss
 import deepspeed
 from deepspeed import DeepSpeedEngine
-
-
-
+from thop import profile
+from torchprofile import profile_macs
 import wandb
 # import paht to sys
 from omegaconf import OmegaConf
+
 
 from utils.logging import CSVLogger, setup_logging
 
@@ -104,7 +105,9 @@ def train(config):
     train_loader, val_loader, test_loader, train_ds, val_ds, test_ds = data_preprocessor.preprocess(pd.read_csv(config['data']['data_path']))
 
     # Initialize model
+    # baseline_model = VisionTransformer(**config['model'])
 
+    # baseline_model.to(device)
     if config['model']['method'] == 'gaviko':
         model = Gaviko(**config['model'])
 
@@ -150,6 +153,10 @@ def train(config):
         model = PromptedVisionTransformer(**config['model'])
 
     model.to(device)
+    # model = baseline_model
+    model = model.to(device,dtype=torch.float16) if config['train']['fp16'] else model.to(device,dtype=torch.float32)
+    if config['train']['deepspeed']['enabled']:
+        model = model.half()
     logging.info(f"Model: {model}")
     count_freeze = 0
     count_tuning = 0
@@ -174,9 +181,11 @@ def train(config):
     trainable_params = [p for p in model.parameters() if p.requires_grad]
 
     if not config['train']['deepspeed']['enabled']:
+        #for fp16 training use different optimizer
         optimizer = torch.optim.Adam(
             trainable_params,
             lr=config['train']['lr'],
+            eps=1e-4 if config['train']['fp16'] else 1e-8,  # use smaller eps for fp16
         )
     logging.info(f"Number of trainable params: {len(list(trainable_params))}")
     logging.info(f"Trainable params type: {type(trainable_params)}")
@@ -232,6 +241,19 @@ def train(config):
         import gc
         gc.collect()
         logging.info("DeepSpeed initialized.")
+    
+
+    def calculate_flops(model, input_tensor):
+        # calculate forward pass
+        macs = profile_macs(model, input_tensor)
+        total_params = sum(p.numel() for p in model.parameters())
+        flops_forward = macs * 2
+        analyze_model_computation(total_params, flops_forward, verbose=True)
+        return analyze_model_computation(total_params, flops_forward, verbose=True)
+
+    scaler =  torch.amp.GradScaler()
+    from utils.logging import MemoryUsageLogger
+    memory_usage_logger = MemoryUsageLogger(verbose=config['train']['memory_verbose'])
     for epoch in range(num_epochs):
         num_acc = 0.0
         running_loss = 0.0
@@ -242,36 +264,63 @@ def train(config):
         index = 0
     
         for inputs, labels in tqdm(train_loader):
+            memory_usage_logger.index = index
             if config['train']['deepspeed']['enabled']:
-                # cast float16 if enabled
-                inputs = inputs.half()
-                inputs = inputs.to(engine.device)
+
+                memory_usage_logger.display_before_forward_pass(model=engine, device=device)
+
+                # inputs = inputs.to(engine.device)
+                inputs = inputs.to(engine.device, dtype=torch.float16)
                 labels = labels.to(engine.device)
 
+                memory_usage_logger.display_after_moving_data_to_gpu(data=inputs, device=device)
                 
                 outputs = engine(inputs)
-                m = torch.nn.Softmax(dim=-1)
-                loss = criterion(m(outputs), labels)
+
+                memory_usage_logger.display_after_forward_pass(model=engine, device=device)
                 
+                # m = torch.nn.Softmax(dim=-1)
+                loss = criterion(outputs, labels)
+
                 engine.backward(loss)
+
+                memory_usage_logger.display_after_backward_pass(device=device)
+                
                 engine.step()
                 current_lr = engine.get_lr()[0] if hasattr(engine, 'get_lr') else 3e-4
-                
+
+                memory_usage_logger.display_after_optimization_step(device=device)
+
             else:
-                inputs = inputs.half()
+                memory_usage_logger.display_before_forward_pass(model=model, device=device)
                 optimizer.zero_grad()
 
-                inputs = inputs.to(device)
+                inputs = inputs.to(device,dtype=torch.float16) if config['train']['fp16'] else inputs.to(device,dtype=torch.float32)
                 labels = labels.to(device)
 
+                memory_usage_logger.display_after_moving_data_to_gpu(data=inputs, device=device)
+
+
+
                 outputs = model(inputs)
-                m = torch.nn.Softmax(dim=-1)
-                loss = criterion(m(outputs), labels)
+                loss = criterion(outputs, labels)
+
+                memory_usage_logger.display_after_forward_pass(model=model, device=device)
+
 
                 loss.backward()
+
+                memory_usage_logger.display_after_backward_pass(device=device)
+                
+                max_norm = 1.0 
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+                
                 optimizer.step()
                 scheduler.step()
+                
                 current_lr = model.get_lr()[0] if hasattr(model, 'get_lr') else 3e-4
+                
+                memory_usage_logger.display_after_optimization_step(device=device)
                 
             # scheduler.step(epoch + i / iters)
 
@@ -334,24 +383,28 @@ def train(config):
             index_val = 0
             for inputs, labels in tqdm(val_loader):
                 if config['train']['deepspeed']['enabled']:
-                    inputs = inputs.half()
-                    inputs = inputs.to(engine.device)
+                    inputs = inputs.to(engine.device,dtype=torch.float16)
                     labels = labels.to(engine.device)
 
                     outputs = engine(inputs)
                     m = torch.nn.Softmax(dim=-1)
                     loss = criterion(m(outputs), labels)
                     current_lr = engine.get_lr()[0] if hasattr(engine, 'get_lr') else 3e-4
-
+                    if index_val == 0 and config['train']['flops_calculation']:
+                        macs = calculate_flops(engine, inputs)
+                        print(f"FLOPs: {macs}")
                 else:
-                    inputs = inputs.half()
                     inputs  = inputs.to(device)
                     labels  = labels.to(device)
 
                     outputs = model(inputs)
-                    m = torch.nn.Softmax(dim=-1)
-                    loss = criterion(m(outputs), labels)
+                    # m = torch.nn.Softmax(dim=-1)
+                    # loss = criterion(m(outputs), labels)
+                    loss = criterion(outputs, labels)
                     current_lr = model.get_lr()[0] if hasattr(model, 'get_lr') else 3e-4
+                    if index_val == 0 and config['train']['flops_calculation']:
+                        macs = calculate_flops(model, inputs)
+                        print(f"FLOPs: {macs}")
 
                 running_val_loss += loss.item() * inputs.size(0)
                 num_val_acc += (torch.argmax(outputs, dim = 1) == labels).sum().item()
