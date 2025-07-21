@@ -6,9 +6,9 @@
   'data':{
     'batch_size': 8,
     'num_workers': 8,
-    'data_path': './data/unified_xray_mri_label.csv', # path to the CSV file containing image paths and labels
-    'image_folder': './data',
-    'test_data': './data/unified_xray_mri_label.csv' # path to the CSV file containing test image paths and labels
+    'data_path': '/mnt/e/workspace/gsoft/GAViKO_origin/dataset/unified_xray_mri_label_processed.csv', # path to the CSV file containing image paths and labels
+    'image_folder': '/mnt/e/workspace/gsoft/GAViKO_origin/dataset/part1',
+    'test_data': '/mnt/e/workspace/gsoft/GAViKO_origin/dataset/unified_xray_mri_label_processed.csv' # path to the CSV file containing test image paths and labels
   },
   'model':{
       'image_size':160,
@@ -47,6 +47,10 @@
         'three_phase': False  # don't use 3 phases (only 2 phases: up-and-down)
       },
       'patience': 15,  # number of epochs with no improvement before stopping training
+      'deepspeed': {
+        'enabled': False,  # Enable DeepSpeed
+        'config': '/mnt/e/workspace/gsoft/GAViKO_origin/src/configs/deepspeed.yaml'  # Path to DeepSpeed config file
+      }
   },
   'wandb':{
     'enable': False,

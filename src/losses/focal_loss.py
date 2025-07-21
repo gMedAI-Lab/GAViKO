@@ -33,7 +33,8 @@ class FocalLoss(nn.Module):
             weights: Union[None, Tensor] = None,
             reduction: str = 'mean',
             ignore_index=-100,
-            eps=1e-16
+            eps=1e-16,
+            fp16: bool = False
             ) -> None:
         super().__init__()
         if reduction not in ['mean', 'none', 'sum']:
@@ -43,6 +44,7 @@ class FocalLoss(nn.Module):
         assert weights is None or isinstance(weights, Tensor), \
             'weights should be of type Tensor or None, but {} given'.format(
                 type(weights))
+        self.dtype = torch.float16 if fp16 else torch.float32
         self.reduction = reduction
         self.gamma = gamma
         self.ignore_index = ignore_index
@@ -79,8 +81,17 @@ class FocalLoss(nn.Module):
         p = p.sum(dim=-1)
         p = p * ~mask
         return p
-
+    def _process_preds(self, x: Tensor) -> Tensor:
+        # handle exploding gradients
+        x = torch.clamp(x, self.eps, 1 - self.eps)
+        # handle NAN when gradients just explode
+        if x.shape[-1] == 1:  # Binary classification
+            return torch.sigmoid(x)  # Ensure outputs are probabilities
+        else:  # Multi-class classification
+            return torch.softmax(x, dim=-1)  # Ensure outputs are probabilities
     def forward(self, x: Tensor, target: Tensor) -> Tensor:
+
+        x = self._process_preds( x)
         assert torch.all((x >= 0.0) & (x <= 1.0)), ValueError(
             'The predictions values should be between 0 and 1, \
                 make sure to pass the values to sigmoid for binary \

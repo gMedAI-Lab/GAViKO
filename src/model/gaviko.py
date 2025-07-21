@@ -6,7 +6,7 @@ from torch.nn import functional as F
 import math
 from utils.load_pretrained  import load_pretrain, mapping_vit
 import logging
-from model.vision_transformer import Attention, FeedForward
+import model.vision_transformer as vision_transformer
 
 
 def pair(t):
@@ -194,7 +194,8 @@ class LocalSelfAttention(nn.Module):
                  attn_drop=0.0,
                  proj_drop=0.0,
                  local_dim=20,
-                 qkv_bias=False):
+                 qkv_bias=False,
+                 dtype=torch.float32):
         super().__init__()
         self.dim = dim
         self.scale = dim ** -0.5
@@ -214,14 +215,14 @@ class LocalSelfAttention(nn.Module):
             N = D * H * W  # 1000 (Image tokens)
 
             # Init mask Image Tokens (N, N)
-            mask = torch.ones((N, D + dk - 1, H + hk - 1, W + wk - 1), dtype=torch.float32)
+            mask = torch.ones((N, D + dk - 1, H + hk - 1, W + wk - 1), dtype=dtype)
             for d in range(D):
                 for h in range(H):
                     for w in range(W):
                         mask[d * H * W + h * W + w, d:d + dk, h:h + hk, w:w + wk] = 0.0
 
             mask_pytorch = mask[:, dk // 2:D + dk // 2, hk // 2:H + hk // 2, wk // 2:W + wk // 2].reshape(N, -1)
-            mask_inf = torch.full((N, N), float('-inf'), dtype=torch.float32)
+            mask_inf = torch.full((N, N), float('-inf'), dtype=dtype)
             local_mask = torch.where(mask_pytorch < 1, mask_pytorch, mask_inf)  # (N, N)
             self.mask = local_mask.unsqueeze(0)  # (1, N, N)
 
@@ -257,7 +258,8 @@ class Transformer(nn.Module):
                  attn_drop=0.,
                  proj_drop=0.,
                  local_dim=20,
-                 dropout=0.):
+                 dropout=0.,
+                 dtype =torch.float32):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.num_prompts = num_prompts
@@ -267,7 +269,7 @@ class Transformer(nn.Module):
         num_unique_components = math.ceil(depth / share_factor)
 
         self.local_attns = nn.ModuleList([
-            LocalSelfAttention(dim, local_k, DHW, attn_drop, proj_drop, local_dim, qkv_bias=False)
+            LocalSelfAttention(dim, local_k, DHW, attn_drop, proj_drop, local_dim, qkv_bias=False,dtype=dtype)
             for _ in range(num_unique_components)
         ])
 
@@ -277,12 +279,12 @@ class Transformer(nn.Module):
         ])
 
         self.attns = nn.ModuleList([
-            Attention(dim, heads, dim_head, dropout)
+            vision_transformer.Attention(dim, heads, dim_head, dropout)
             for _ in range(depth)
         ])
 
         self.mlps = nn.ModuleList([
-            FeedForward(dim, mlp_dim, dropout)
+            vision_transformer.FeedForward(dim, mlp_dim, dropout)
             for _ in range(depth)
         ])
 
@@ -348,10 +350,14 @@ class Gaviko(nn.Module):
                  proj_drop = 0.2,
                  freeze_vit=False,
                  share_factor = 1,
+                 fp16=False,
                  **kwargs
                 ):
         super().__init__()
-
+        self.dtype = torch.float32 if not fp16 else torch.float16
+        print("GAViKO Model Initialization")
+        # get inside a deepspeed context
+        print(f"Using dtype: {self.dtype}")
         depth, heads, dim, mlp_dim = mapping_vit(backbone)
 
         image_height, image_width = pair(image_size)
@@ -395,7 +401,8 @@ class Gaviko(nn.Module):
                                        attn_drop,
                                        proj_drop,
                                        local_dim,
-                                       dropout)
+                                       dropout,
+                                       dtype=self.dtype)
 
 
         self.pool = pool
@@ -541,4 +548,5 @@ class Gaviko(nn.Module):
         local_tokens = self.dropout(local_tokens)
 
         out = self.transformer(global_tokens, local_tokens)
+
         return self.mlp_head(out)
