@@ -23,6 +23,7 @@
       'emb_dropout':0.1,
       'channels':1,
       'num_classes':5,
+      'fp16': True,  # Enable mixed precision training
       'pool':'cls',
       'backbone': 'vit-b16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16'
   },
