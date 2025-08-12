@@ -29,6 +29,7 @@
       'num_prompts':8,
       'prompt_dropout':0.1,
       'prompt_dim':64,
+      'fp16': True,  # Enable mixed precision training
       'deep_prompt':True
   },
   'train':{

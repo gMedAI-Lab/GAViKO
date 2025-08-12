@@ -27,6 +27,7 @@
       'pool':'cls',
       'backbone': 'vit-b16', # 'vit-b16', 'vit-t16', 'vit-s16', 'vit-l16',
       'r': 4,  # LoRA rank
+      'fp16': True,  # Enable mixed precision training
       'alpha': 4,  # LoRA scaling factor,
       'lora_layers': None,  # LoRA layers to apply
   },

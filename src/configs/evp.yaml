@@ -30,6 +30,7 @@
       'input_type':'fft',
       'freq_nums':0.25,
       'handcrafted_tune':True,
+      'fp16': True,  # Enable mixed precision training
       'embedding_tune':True,
   },
   'train':{
