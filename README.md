@@ -19,6 +19,18 @@ Supported methods (select via `--method`):
 - `fft`: ViT with FFT-related configuration (used by `evp`)
 
 
+### References for supported methods
+
+- AdaptFormer: [GitHub repository](https://github.com/ShoufaChen/AdaptFormer)
+- DVPT (Dynamic Visual Prompt Tuning): [GitHub repository](https://github.com/NKUhealong/DVPT)
+- VPT (deep_vpt/shallow_vpt): [GitHub repository](https://github.com/KMnP/vpt)
+- EVP (Explicit Visual Prompting): [GitHub repository](https://github.com/NiFangBaAGe/Explicit-Visual-Prompt)
+- SSF (Scaling & Shifting Features): [GitHub repository](https://github.com/dongzelian/SSF)
+- MeLO (LoRA-ViT for ViT): [GitHub repository](https://github.com/JamesQFreeman/LoRA-ViT)
+- ViT 3D backbone adaptation: [vit-pytorch (vit_3d.py)](https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit_3d.py)
+- Focal Loss implementation and paper: [focal_loss_torch](https://github.com/mathiaszinnen/focal_loss_torch) • [paper](https://arxiv.org/abs/1708.02002)
+
+
 ### Repository structure
 
 ```
