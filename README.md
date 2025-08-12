@@ -2,6 +2,10 @@
 
 GAViKO is a PyTorch-based framework for 3D medical image classification built on top of Vision Transformers (ViT). It supports multiple parameter-efficient fine-tuning (PEFT) and prompting strategies for 3D inputs (e.g., volumetric MRI saved as `.npz`).
 
+![![alt text](GAViKO Architecture)](src/asset/image.png)
+
+
+
 Supported methods (select via `--method`):
 - `gaviko`: custom global-local prompt fusion (default)
 - `linear`: linear-probe head on frozen ViT
