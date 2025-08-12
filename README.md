@@ -21,14 +21,14 @@ Supported methods (select via `--method`):
 
 ### References for supported methods
 
-- AdaptFormer: [GitHub repository](https://github.com/ShoufaChen/AdaptFormer)
-- DVPT (Dynamic Visual Prompt Tuning): [GitHub repository](https://github.com/NKUhealong/DVPT)
-- VPT (deep_vpt/shallow_vpt): [GitHub repository](https://github.com/KMnP/vpt)
-- EVP (Explicit Visual Prompting): [GitHub repository](https://github.com/NiFangBaAGe/Explicit-Visual-Prompt)
-- SSF (Scaling & Shifting Features): [GitHub repository](https://github.com/dongzelian/SSF)
-- MeLO (LoRA-ViT for ViT): [GitHub repository](https://github.com/JamesQFreeman/LoRA-ViT)
-- ViT 3D backbone adaptation: [vit-pytorch (vit_3d.py)](https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit_3d.py)
-- Focal Loss implementation and paper: [focal_loss_torch](https://github.com/mathiaszinnen/focal_loss_torch) • [paper](https://arxiv.org/abs/1708.02002)
+- AdaptFormer: [GitHub repository](https://github.com/ShoufaChen/AdaptFormer) • [Paper](https://arxiv.org/abs/2205.13535)
+- DVPT (Dynamic Visual Prompt Tuning): [GitHub repository](https://github.com/NKUhealong/DVPT) • [Paper](https://arxiv.org/abs/2307.09787)
+- VPT (deep_vpt/shallow_vpt): [GitHub repository](https://github.com/KMnP/vpt) • [Paper](https://arxiv.org/abs/2203.12119)
+- EVP (Explicit Visual Prompting): [GitHub repository](https://github.com/NiFangBaAGe/Explicit-Visual-Prompt) • [Paper](https://arxiv.org/abs/2305.18476)
+- SSF (Scaling & Shifting Features): [GitHub repository](https://github.com/dongzelian/SSF) • [Paper](https://arxiv.org/abs/2210.08823)
+- MeLO (LoRA-ViT for ViT): [GitHub repository](https://github.com/JamesQFreeman/LoRA-ViT) • [Paper](https://arxiv.org/abs/2311.08236)
+- ViT 3D backbone adaptation: [GitHub repository](https://github.com/lucidrains/vit-pytorch) • [Paper](https://arxiv.org/abs/2311.08236)
+- Focal Loss implementation and paper: [GitHub repository](https://github.com/mathiaszinnen/focal_loss_torch) • [Paper](https://arxiv.org/abs/1708.02002)
 
 
 ### Repository structure
