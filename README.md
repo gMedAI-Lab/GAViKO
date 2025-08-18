@@ -27,7 +27,7 @@ Supported methods (select via `--method`):
 - EVP (Explicit Visual Prompting): [GitHub repository](https://github.com/NiFangBaAGe/Explicit-Visual-Prompt) • [Paper](https://arxiv.org/abs/2305.18476)
 - SSF (Scaling & Shifting Features): [GitHub repository](https://github.com/dongzelian/SSF) • [Paper](https://arxiv.org/abs/2210.08823)
 - MeLO (LoRA-ViT for ViT): [GitHub repository](https://github.com/JamesQFreeman/LoRA-ViT) • [Paper](https://arxiv.org/abs/2311.08236)
-- ViT 3D backbone adaptation: [GitHub repository](https://github.com/lucidrains/vit-pytorch) • [Paper](https://arxiv.org/abs/2311.08236)
+- ViT 3D backbone adaptation: [GitHub repository](https://github.com/lucidrains/vit-pytorch) • [Paper](https://arxiv.org/abs/2010.11929)
 - Focal Loss implementation and paper: [GitHub repository](https://github.com/mathiaszinnen/focal_loss_torch) • [Paper](https://arxiv.org/abs/1708.02002)
 
 
