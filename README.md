@@ -1,4 +1,4 @@
-### GAViKO: 3D ViT fine-tuning and prompting for medical image classification
+### GAViKO: GAViKO: Gated Adaptive Vision Transformer for MRI-based Knee Osteoarthritis Prediction using Dynamically Weighted Prompt Tuning and Local-Global Context Fusion
 
 GAViKO is a PyTorch-based framework for 3D medical image classification built on top of Vision Transformers (ViT). It supports multiple parameter-efficient fine-tuning (PEFT) and prompting strategies for 3D inputs (e.g., volumetric MRI saved as `.npz`).
 
