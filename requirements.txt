@@ -6,11 +6,10 @@ torch==2.7.1
 torchio==0.20.16
 tqdm==4.67.1
 torchio==0.20.16
-numpy==2.3.1
 pandas==2.3.0
 omegaconf==2.3.0
-scipy == 1.12.1
-scikit-learn==1.3.2
-typing-extensions==4.9.0
-wandb==0.15.9
+scipy>=1.14
+scikit-learn>=1.5
+typing-extensions
+wandb>=0.17.0 
 thop
